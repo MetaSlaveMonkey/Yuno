@@ -1,0 +1,90 @@
+{
+    "kiss": {
+        "description": "Kiss",
+        "emoji": "💋",
+        "text": [
+            "{author} kisses {target}!",
+            "{author} kisses {target} on the cheek.",
+            "{author} gives {target} a peck on the lips.",
+            "{author} kisses {target} passionately."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "bite": {
+        "description": "Bite",
+        "emoji": "🙀",
+        "text": [
+            "{author} bites {target}!",
+            "{author} playfully bites {target}.",
+            "{author} bites {target}'s ear.",
+            "{author} bites {target}'s neck."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "hug": {
+        "description": "Hug",
+        "emoji": "🫂",
+        "text": [
+            "{author} hugs {target}!",
+            "{author} gives {target} a warm hug.",
+            "{author} wraps their arms around {target}.",
+            "{author} hugs {target} tightly."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "cuddle": {
+        "description": "Cuddle",
+        "emoji": "🥺",
+        "text": [
+            "{author} cuddles {target}!",
+            "{author} cuddles {target} close.",
+            "{author} cuddles {target} affectionately.",
+            "{author} cuddles {target} lovingly."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "pat": {
+        "description": "Pat",
+        "emoji": "🤚",
+        "text": [
+            "{author} pats {target} on the head.",
+            "{author} gives {target} a pat on the back.",
+            "{author} pats {target} gently."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "lick": {
+        "description": "Lick",
+        "emoji": "👅",
+        "text": [
+            "{author} licks {target}!",
+            "{author} licks {target} playfully.",
+            "{author} licks {target} affectionately."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "poke": {
+        "description": "Poke",
+        "emoji": "👉",
+        "text": [
+            "{author} pokes {target}!",
+            "{author} pokes {target} playfully.",
+            "{author} pokes {target} affectionately."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    }
+}

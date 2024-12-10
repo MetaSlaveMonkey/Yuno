@@ -1,0 +1,6 @@
+asyncpg
+python-dotenv
+aiofiles
+aiohttp
+orjson
+discord.py

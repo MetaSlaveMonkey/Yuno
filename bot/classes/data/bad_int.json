@@ -1,0 +1,90 @@
+{
+    "slap": {
+        "description": "Slap",
+        "emoji": "👋",
+        "text": [
+            "{author} slaps {target}!",
+            "{author} slaps {target} across the face.",
+            "{author} slaps {target} on the back.",
+            "{author} slaps {target} on the butt."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "kick": {
+        "description": "Kick",
+        "emoji": "🦿",
+        "text": [
+            "{author} kicks {target}!",
+            "{author} kicks {target} in the shin.",
+            "{author} kicks {target} in the butt.",
+            "{author} kicks {target} in the stomach."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "punch": {
+        "description": "Punch",
+        "emoji": "👊",
+        "text": [
+            "{author} punches {target}!",
+            "{author} punches {target} in the face.",
+            "{author} punches {target} in the gut.",
+            "{author} punches {target} in the arm."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "kill": {
+        "description": "Kill",
+        "emoji": "💀",
+        "text": {
+            "success": [
+                "{author} kills {target}!",
+                "{author} murders {target}.",
+                "{author} slaughters {target}.",
+                "{author} takes {target}'s life."
+            ],
+            "failure": [
+                "{author} tries to kill {target} but fails.",
+                "{author} attempts to kill {target} but misses.",
+                "{author} tries to kill {target} but {target} dodges."
+            ],
+            "success_gifs": [
+                "TODO"
+            ],
+            "failure_gifs": [
+                "TODO"
+            ]
+        }
+    },
+    "bully": {
+        "description": "Bully",
+        "emoji": "🤬",
+        "text": [
+            "{author} bullies {target}!",
+            "{author} picks on {target}.",
+            "{author} makes fun of {target}.",
+            "{author} calls {target} names."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    },
+    "stalk": {
+        "description": "Stalk",
+        "emoji": "🕵️",
+        "text": [
+            "{author} stalks {target}!",
+            "{author} follows {target} around.",
+            "{author} spies on {target}.",
+            "{author} watches {target} from a distance."
+        ],
+        "gifs": [
+            "TODO"
+        ]
+    }
+}
