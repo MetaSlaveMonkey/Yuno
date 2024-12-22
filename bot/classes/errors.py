@@ -1,34 +1,22 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Generic,
-    TypeVar,
-    Union,
-    Any,
-    Optional,
-    Type,
-    overload,
-    Protocol,
-    Literal,
-    TypedDict,
-    runtime_checkable
-)
-
 import asyncio
 import logging
 from enum import Enum
+from typing import (TYPE_CHECKING, Any, Generic, Literal, Optional, Protocol,
+                    Type, TypedDict, TypeVar, Union, overload,
+                    runtime_checkable)
 
 from discord.ext import commands
 
 from ..utils import MessagePreview
 
 if TYPE_CHECKING:
-    from discord import User, Guild
+    from discord import Guild, User
     from discord.ext.commands import Context
 
-    from .embed import YEmbed
     from ..main import Yuno
+    from .embed import YEmbed
 
 
 T = TypeVar("T")
@@ -48,29 +36,27 @@ __all__: tuple[str, ...] = (
     "YunoCommandErrorFactory",
     "YunoErrorProtocol",
     "YunoColours",
-    "Palette"
+    "Palette",
 )
 
 
 @runtime_checkable
 class YunoErrorProtocol(Protocol):
-    def __str__(self) -> str:
-        ...
-    
-    def __repr__(self) -> str:
-        ...
-    
-    def log_case(self, message: str) -> None:
-        ...
-    
-    def create_embed(self, ctx: Context[Yuno]) -> YEmbed:
-        ...
-    
-    async def handle(self, ctx: Context[Yuno], message: Optional[str] = None) -> None:
-        ...
-    
-    def get_colour(self, palette: Optional[Palette] = None) -> tuple[int, tuple[int, ...]]:
-        ...
+    def __str__(self) -> str: ...
+
+    def __repr__(self) -> str: ...
+
+    def log_case(self, message: str) -> None: ...
+
+    def create_embed(self, ctx: Context[Yuno]) -> YEmbed: ...
+
+    async def handle(
+        self, ctx: Context[Yuno], message: Optional[str] = None
+    ) -> None: ...
+
+    def get_colour(
+        self, palette: Optional[Palette] = None
+    ) -> tuple[int, tuple[int, ...]]: ...
 
 
 class Palette(TypedDict):
@@ -87,10 +73,10 @@ class YunoColours:
 
     def __getattr__(self, name: str) -> tuple[int, tuple[int, ...]]:
         return self.palette[name]
-    
+
     @classmethod
     def friday_palette(cls) -> Palette:
-        """ >>> credits: https://www.color-hex.com/color-palette/1053754
+        """>>> credits: https://www.color-hex.com/color-palette/1053754
         #facea8	(250,206,168) -> neutral
         #99b898	(153,184,152) -> success
         #ff847c	(255,132,124) -> pending
@@ -98,11 +84,11 @@ class YunoColours:
         #2a363b	(42,54,59) -> cancelled
         """
         return Palette(
-            success=(0x99b898, (153, 184, 152)),
-            error=(0xe84a5f, (232, 74, 95)),
-            neutral=(0xfacea8, (250, 206, 168)),
-            pending=(0xff847c, (255, 132, 124)),
-            cancelled=(0x2a363b, (42, 54, 59))
+            success=(0x99B898, (153, 184, 152)),
+            error=(0xE84A5F, (232, 74, 95)),
+            neutral=(0xFACEA8, (250, 206, 168)),
+            pending=(0xFF847C, (255, 132, 124)),
+            cancelled=(0x2A363B, (42, 54, 59)),
         )
 
 
@@ -113,21 +99,25 @@ class YunoError(Exception):
 
     def __str__(self) -> str:
         return self.message
-    
+
     def __repr__(self) -> str:
         return f"<YunoError level={self.level!r} message={self.message!r}>"
-    
+
 
 class YunoCommandError(commands.CommandError, YunoError):
-    def get_colour(self, palette: Optional[Palette] = None) -> tuple[int, tuple[int, ...]]:
+    def get_colour(
+        self, palette: Optional[Palette] = None
+    ) -> tuple[int, tuple[int, ...]]:
         if palette is None:
             return YunoColours.friday_palette()[self.level]
         return palette[self.level]
-    
-    async def send_timed_response(self, ctx: Context[Yuno], message: str, time: int = 5) -> None:
+
+    async def send_timed_response(
+        self, ctx: Context[Yuno], message: str, time: int = 5
+    ) -> None:
         async with MessagePreview(ctx, message) as _:
             return await asyncio.sleep(time)
-            
+
     def log_case(self, message: str) -> None:
         log.error(message)
 
@@ -135,9 +125,9 @@ class YunoCommandError(commands.CommandError, YunoError):
         return YEmbed.error(
             title=f"Command Exception: {self.level.capitalize()}",
             description=self.message,
-            color=self.get_colour()[0]
+            color=self.get_colour()[0],
         )
-    
+
     async def handle(self, ctx: Context[Yuno], message: Optional[str] = None) -> None:
         if message is not None:
             self.log_case(message)
@@ -183,11 +173,11 @@ class YunoCommandErrorFactory:
             YunoCommandErrorType.SUCCESS: YunoCommandSuccess,
             YunoCommandErrorType.NEUTRAL: YunoCommandNeutral,
             YunoCommandErrorType.PENDING: YunoCommandOnCooldown,
-            YunoCommandErrorType.CANCELLED: YunoCommandCancelled
+            YunoCommandErrorType.CANCELLED: YunoCommandCancelled,
         }[self.level](message)
-    
+
     def __repr__(self) -> str:
         return f"<YunoCommandErrorFactory level={self.level!r}>"
-    
+
     def __str__(self) -> str:
         return self.level.value

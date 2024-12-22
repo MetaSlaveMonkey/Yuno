@@ -2,34 +2,21 @@ from __future__ import annotations
 
 import asyncio
 import functools
-
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from typing import (
-    TYPE_CHECKING,
-    Awaitable,
-    Callable,
-    AsyncIterator,
-    Iterable,
-    Iterator,
-    overload,
-    Optional,
-    ParamSpec,
-    TypeVar,
-    Type,
-    Any,
-)
+from typing import (TYPE_CHECKING, Any, AsyncIterator, Awaitable, Callable,
+                    Iterable, Iterator, Optional, ParamSpec, Type, TypeVar,
+                    overload)
 
 import discord
-
 from discord.app_commands import Command as AppCommand
 from discord.ext.commands import Command as ExtCommand
 
 if TYPE_CHECKING:
     from discord.ext.commands import Context
 
-    from ..main import Yuno
     from ..classes import YEmbed
+    from ..main import Yuno
 
 
 T = TypeVar("T")
@@ -51,12 +38,13 @@ def module_ruleset(decorator: Callable[[T], T]) -> Callable[[Type[T]], Type[T]]:
     ----------
     decorator : Callable[[T], T]
         The decorator to apply to the commands
-    
+
     Returns
     -------
     Callable[[Type[T]], Type[T]]
         The decorated class
     """
+
     def decorate(cls: Type[T]) -> Type[T]:
         for attr_name in cls.__dict__:
             attr = getattr(cls, attr_name)
@@ -65,7 +53,7 @@ def module_ruleset(decorator: Callable[[T], T]) -> Callable[[Type[T]], Type[T]]:
                 # ^ idk how to type this -> its working tho so i guess its fine
 
         return cls
-    
+
     return decorate
 
 
@@ -82,9 +70,12 @@ def run_async(func: Callable[P, T]) -> Callable[P, Awaitable[T]]:
     Callable[P, Awaitable[T]]
         The asynchronous function
     """
+
     @functools.wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        return await asyncio.get_event_loop().run_in_executor(executor, functools.partial(func, *args, **kwargs))
+        return await asyncio.get_event_loop().run_in_executor(
+            executor, functools.partial(func, *args, **kwargs)
+        )
 
     return wrapper
 
@@ -101,7 +92,10 @@ class MessagePreview:
     embed : Optional[YEmbed], optional
         The embed to send, by default None
     """
-    def __init__(self, ctx: Context[Yuno], content: str, embed: Optional[YEmbed] = None) -> None:
+
+    def __init__(
+        self, ctx: Context[Yuno], content: str, embed: Optional[YEmbed] = None
+    ) -> None:
         self.ctx = ctx
         self.embed = embed
         self.content = content
@@ -112,7 +106,7 @@ class MessagePreview:
             self.message = await self.ctx.reply(content=self.content)
         else:
             self.message = await self.ctx.reply(content=self.content, embed=self.embed)
-    
+
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         if self.message is not None:
             await self.message.delete()
@@ -123,25 +117,23 @@ class FakeRecord:
         self._data: dict[str, Any] = data if data is not None else {}
 
     @overload
-    def get(self, key: str) -> Any | None:
-        ...
+    def get(self, key: str) -> Any | None: ...
 
     @overload
-    def get(self, key: str, default: _T) -> Any | _T:
-        ...
+    def get(self, key: str, default: _T) -> Any | _T: ...
 
     def get(self, key: str, default: Any | None = None) -> Any | None:
         return self._data.get(key, default)
-    
+
     def items(self) -> Iterator[tuple[str, Any]]:
         return iter(self._data.items())
-    
+
     def keys(self) -> Iterable[str]:
         return self._data.keys()
-    
+
     def values(self) -> Iterable[Any]:
         return self._data.values()
-    
+
     def __getitem__(self, index: str | int | slice) -> Any:
         if isinstance(index, str):
             return self._data[index]
@@ -151,4 +143,3 @@ class FakeRecord:
             return tuple(list(self._data.values())[index])
         else:
             raise TypeError(f"Invalid index type: {type(index)}")
-        

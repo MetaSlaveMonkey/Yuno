@@ -1,38 +1,27 @@
 from __future__ import annotations
 
-import io
-import os
-import re
-
-import orjson
 import asyncio
-import pathlib
-import logging
-import difflib
-import datetime
-import itertools
-import functools
 import collections
-
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Union,
-    Any,
-    List,
-    Tuple,
-    Dict,
-    Set,
-    Iterable
-)
+import datetime
+import difflib
+import functools
+import io
+import itertools
+import logging
+import os
+import pathlib
+import re
+from typing import (TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set,
+                    Tuple, Union)
 
 import aiohttp
 import asyncpg
 import discord
+import orjson
+from discord import Interaction, Message
 from discord.ext import commands, tasks
-from discord import Message, Interaction
 
-from .classes import YEmbed, YUser, YGuild
+from .classes import YEmbed, YGuild, YUser
 from .config import Config
 
 if TYPE_CHECKING:
@@ -53,7 +42,7 @@ class AsyncUserCache:
                 await self.upsert_user(db, user_id)
 
             return self._cache[user_id]
-        
+
     async def upsert_user(self, db: asyncpg.Connection, user_id: int) -> YUser:
         async with self._lock:
             user = await YUser.upsert_user(db, user_id)
@@ -61,7 +50,7 @@ class AsyncUserCache:
             self._cache[user_id] = user
 
             return user
-        
+
     async def insert_many(self, db: asyncpg.Connection, users: List[YUser]) -> None:
         async with self._lock:
             await YUser.insert_many(db, users)
@@ -79,13 +68,13 @@ class Yuno(commands.Bot):
         session: Optional[aiohttp.ClientSession] = None,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         intents: discord.Intents,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         super().__init__(
             self.get_prefix,  # type: ignore
             case_insensitive=True,
             owner_ids=config.get_owner_ids(),
-            intents=intents, 
+            intents=intents,
         )
         self.token = token
         self.dns = dns
@@ -167,7 +156,11 @@ class Yuno(commands.Bot):
             records = await conn.fetch("SELECT * FROM guilds")
 
         self.cached_prefixes = {
-            record["guild_id"]: [record["prefix"] for record in records if record["guild_id"] == record["guild_id"]]
+            record["guild_id"]: [
+                record["prefix"]
+                for record in records
+                if record["guild_id"] == record["guild_id"]
+            ]
             for record in records
         }
 
@@ -186,7 +179,7 @@ class Yuno(commands.Bot):
     async def add_user(self, user_id: int) -> YUser:
         if self.pool is None:
             self.pool = await asyncpg.create_pool(self.config.get_dsn())
-        
+
         async with self.pool.acquire() as conn:
             return await self.user_cache.upsert_user(conn, user_id)
 
@@ -194,17 +187,17 @@ class Yuno(commands.Bot):
         user = self.user_cache._cache.get(user_id)
         if user:
             return user
-        
+
         if self.pool is None:
             self.pool = await asyncpg.create_pool(self.config.get_dsn())
-        
+
         async with self.pool.acquire() as conn:
             return await YUser.get_user(conn, user_id)
-        
+
     async def insert_many_users(self, users: List[YUser]) -> None:
         if self.pool is None:
             self.pool = await asyncpg.create_pool(self.config.get_dsn())
-        
+
         async with self.pool.acquire() as conn:
             await self.user_cache.insert_many(conn, users)
 
@@ -230,7 +223,9 @@ def main() -> None:
     token = config.TOKEN
 
     if not token:
-        return log.error("No token provided. Please set the DISCORD_TOKEN environment variable.")
+        return log.error(
+            "No token provided. Please set the DISCORD_TOKEN environment variable."
+        )
 
     dsn = config.get_dsn()
 
