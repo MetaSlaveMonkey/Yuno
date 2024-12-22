@@ -4,6 +4,7 @@ import io
 import os
 import re
 
+import orjson
 import asyncio
 import pathlib
 import logging
@@ -49,21 +50,11 @@ class AsyncUserCache:
     async def get_user(self, db: asyncpg.Connection, user_id: int) -> YUser:
         async with self._lock:
             if user_id not in self._cache:
-                user = await YUser.upsert_user(db, user_id)
-
-                self._cache[user_id] = user
+                await self.upsert_user(db, user_id)
 
             return self._cache[user_id]
         
     async def upsert_user(self, db: asyncpg.Connection, user_id: int) -> YUser:
-        async with self._lock:
-            user = await YUser.upsert_user(db, user_id)
-
-            self._cache[user_id] = user
-
-            return user
-        
-    async def update_user(self, db: asyncpg.Connection, user_id: int) -> YUser:
         async with self._lock:
             user = await YUser.upsert_user(db, user_id)
 
@@ -100,8 +91,8 @@ class Yuno(commands.Bot):
         self.dns = dns
         self.session = session
         self.config = Config()
-        self.pool: Optional[asyncpg.pool.Pool] = None
         self.user_cache = AsyncUserCache()
+        self.pool: Optional[asyncpg.pool.Pool] = None
 
         self.OWNER_IDS: List[int] = self.config.get_owner_ids()
         self._extensions_loaded: asyncio.Event = asyncio.Event()
@@ -232,11 +223,6 @@ class Yuno(commands.Bot):
         msg = await ctx.send(content)
         await asyncio.sleep(delete_after)
         await msg.delete()
-
-    async def on_command_error(self, ctx: commands.Context[Yuno], exception: commands.CommandError) -> None:
-        log.warning(f"Error in command {ctx.command}: {exception}")
-        
-        # TODO: Add error handling cog?
 
 
 def main() -> None:

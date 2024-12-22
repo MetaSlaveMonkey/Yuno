@@ -8,6 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, cast, Any
 
+import asyncpg
 import discord
 from discord.ext import commands, tasks
 
@@ -19,6 +20,14 @@ if TYPE_CHECKING:
     from discord.ext.commands import Context
 
 log = logging.getLogger(__name__)
+
+
+FuzzyConverter = commands.parameter(converter=FuzzyMember, default=None)
+
+
+__all__: tuple[str, ...] = (
+    "UserInteractionModule",
+)
 
 
 @module_ruleset(commands.cooldown(rate=1, per=5, type=commands.BucketType.user))
@@ -39,45 +48,41 @@ class UserInteractionModule(commands.Cog, name="User Interactions"):
                 bot.cached_users[ctx.author.id] = await YUser.from_discord_user(conn, ctx.author)
         
         return True
-
-    async def _increment_interaction_count(
-            self,
-            author: YUser,
-            target: YUser,
-            action: str
-        ) -> None:
-        if author == target:
-            return
+    
+    async def get_user_language(self, user_id: int) -> str:
+        if user_id in self.bot.cached_users:
+            return self.bot.cached_users[user_id].locale
         
         if self.bot.pool is None:
-            return log.warning("No pool available.")
-            
-        conn = await self.bot.pool.acquire()
-        try:
-            await self.interactions.insert_action(
-                conn,
-                author.user_id,
-                target.user_id,
-                action
-            )
-        finally:
-            await self.bot.pool.release(conn)
+            return "en_US"
+
+        async with self.bot.pool.acquire() as conn:
+            record = await conn.fetchrow("SELECT locale FROM users WHERE user_id = $1", user_id)
+            return record['locale'] if record else 'en_US'
+
+    async def get_guild_language(self, guild_id: int) -> str:
+        if guild_id in self.bot.cached_guilds:
+            return self.bot.cached_guilds[guild_id].locale
+        
+        if self.bot.pool is None:
+            return "en_US"
+        
+        async with self.bot.pool.acquire() as conn:
+            record = await conn.fetchrow("SELECT locale FROM guilds WHERE guild_id = $1", guild_id)
+            return record['locale'] if record else 'en_US'
 
     async def _get_interaction_count(self, author: YUser, target: YUser, action: str) -> int:
         if self.bot.pool is None:
             log.warning("No pool available.")
             return 0
 
-        conn = await self.bot.pool.acquire()
-        try:
+        async with self.bot.pool.acquire() as conn:
             count = await self.interactions.get_action_count(
                 conn,
                 author.user_id,
                 target.user_id,
                 action
             )
-        finally:
-            await self.bot.pool.release(conn)
 
         return count or 0
     
@@ -86,40 +91,43 @@ class UserInteractionModule(commands.Cog, name="User Interactions"):
             log.warning("No pool available.")
             return []
 
-        conn = await self.bot.pool.acquire()
-        try:
+        async with self.bot.pool.acquire() as conn:
             actions = await self.interactions.get_actions(
                 conn,
                 author.user_id,
                 target.user_id
             )
-        finally:
-            await self.bot.pool.release(conn)
 
         return actions
     
     async def _get_embed(
             self,
+            pool: asyncpg.Pool,
             author: discord.Member | discord.User,
             target: discord.Member | discord.User,
-            interaction_name: str
+            interaction_name: str,
+            author_lang: str
         ) -> YEmbed:
         if self.bot.pool is None:
             log.warning("No pool available.")
             raise ValueError("No pool available.")
 
-        conn = await self.bot.pool.acquire()
-        try:
-            embed = await self.interactions.get_embed(
-                conn,
-                author,
-                target,
-                interaction_name
+        return await self.interactions.get_embed(
+            pool,
+            author,
+            target,
+            interaction_name,
+            author_lang
+        )
+    
+    async def insert_action(self, pool: asyncpg.Pool, author_id: int, target_id: int, action: str) -> None:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "SELECT insert_action_item($1, $2, $3)",
+                author_id,
+                target_id,
+                action
             )
-        finally:
-            await self.bot.pool.release(conn)
-
-        return embed
     
     @commands.command(
         name="hug",
@@ -130,86 +138,32 @@ class UserInteractionModule(commands.Cog, name="User Interactions"):
     async def hug(
         self,
         ctx: Context,
-        target: discord.Member = commands.parameter(converter=FuzzyMember, default=None)
+        target: discord.Member = FuzzyConverter
     ) -> None:
         if self.bot.pool is None:
             return log.warning("No pool available.")
         
         if target is None:
-            return await ctx.send("❌ | Please provide a user to hug.")
+            user_lang = await self.get_user_language(ctx.author.id)
+            message = self.bot.localise('errors.no_user', locale=user_lang)
+            return await ctx.send(message)
         
-        conn = await self.bot.pool.acquire()
+        await self.insert_action(self.bot.pool, ctx.author.id, target.id, "hug")
+        
+        #embed = await self._get_embed(ctx.author, target, "hug")
+        #author_lang = await self.get_user_language(ctx.author.id)
+        if ctx.author.id in self.bot.cached_users:
+            author_lang = self.bot.cached_users[ctx.author.id].locale
+        else:
+            user = await YUser.upsert_user(self.bot.pool, ctx.author.id)  # type: ignore
+            author_lang = user.locale
+            self.bot.cached_users[ctx.author.id] = user
 
-        await self._increment_interaction_count(
-            await YUser.from_discord_user(conn, ctx.author),
-            await YUser.from_discord_user(conn, target),
-            "hug"
-        )
-        
-        embed = await self._get_embed(ctx.author, target, "hug")
+        ...  # Finish the command
 
-        await self.bot.pool.release(conn)
-        await ctx.send(embed=embed)
-    
-    @commands.command(
-        name="kiss",
-        aliases=[],
-        description="Kiss someone you love.",
-        usage="kiss <user>",
-    )
-    async def kiss(
-        self,
-        ctx: Context,
-        target: discord.Member = commands.parameter(converter=FuzzyMember, default=None)
-    ) -> None:
-        if self.bot.pool is None:
-            return log.warning("No pool available.")
-        
-        if target is None:
-            return await ctx.send("❌ | Please provide a user to kiss.")
-        
-        conn = await self.bot.pool.acquire()
 
-        await self._increment_interaction_count(
-            await YUser.from_discord_user(conn, ctx.author),
-            await YUser.from_discord_user(conn, target),
-            "kiss"
-        )
-        
-        embed = await self._get_embed(ctx.author, target, "kiss")
+        #await ctx.send(embed=embed)
 
-        await self.bot.pool.release(conn)
-        await ctx.send(embed=embed)
-
-    @commands.command(
-        name="bite",
-        aliases=["nom"],
-        description="Are you a vampire?",
-        usage="bite <user>",
-    )
-    async def bite(
-        self,
-        ctx: Context,
-        target: discord.Member = commands.parameter(converter=FuzzyMember, default=None)
-    ) -> None:
-        if self.bot.pool is None:
-            return log.warning("No pool available.")
-        
-        if target is None:
-            return await ctx.send("❌ | Please provide a user to bite.")
-        
-        conn = await self.bot.pool.acquire()
-
-        await self._increment_interaction_count(
-            await YUser.from_discord_user(conn, ctx.author),
-            await YUser.from_discord_user(conn, target),
-            "bite"
-        )
-        
-        embed = await self._get_embed(ctx.author, target, "bite")
-
-        await self.bot.pool.release(conn)
-        await ctx.send(embed=embed)
 
 
 async def setup(bot: Yuno) -> None:

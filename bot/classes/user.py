@@ -40,7 +40,7 @@ class YUser:
         time_zone: str = "UTC",
         locale: str = "en_US"
     ) -> YUser:
-        await db.execute(
+        record = await db.execute(
             """
             INSERT INTO users (user_id, time_zone, locale)
             VALUES ($1, $2, $3)
@@ -51,8 +51,8 @@ class YUser:
             time_zone,
             locale
         )
-        return await YUser.get_user(db, user_id) # type: ignore
-
+        return await YUser.get_user(db, user_id)  # type: ignore
+    
     @staticmethod
     async def insert_many(
         db: asyncpg.Connection,
@@ -103,6 +103,28 @@ class YUser:
         user: discord.User | discord.Member
     ) -> YUser:
         return await cls.upsert_user(db, user.id)
+    
+    @classmethod
+    async def get_user_language(
+        cls,
+        db: asyncpg.Connection,
+        user: discord.User | discord.Member
+    ) -> str:
+        record = await db.fetchrow(
+            """
+            SELECT locale FROM users
+            WHERE user_id = $1
+            """,
+            user.id
+        )
+        return record['locale'] if record else "en_US"
+    
+    @classmethod
+    async def fake_user(
+        cls,
+        id: int
+    ) -> YUser:
+        ... # todo...
 
 
 class FuzzyMember(Converter):
