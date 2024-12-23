@@ -28,6 +28,7 @@ __all__: tuple[str, ...] = (
     "run_async",
     "module_ruleset",
     "MessagePreview",
+    "FakeRecord",
 )
 
 

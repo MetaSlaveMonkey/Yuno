@@ -5,7 +5,7 @@ import logging
 from enum import Enum
 from typing import (TYPE_CHECKING, Any, Generic, Literal, Optional, Protocol,
                     Type, TypedDict, TypeVar, Union, overload,
-                    runtime_checkable)
+                    runtime_checkable, NamedTuple)
 
 from discord.ext import commands
 
@@ -37,6 +37,7 @@ __all__: tuple[str, ...] = (
     "YunoErrorProtocol",
     "YunoColours",
     "Palette",
+    "PaletteColour",
 )
 
 
@@ -59,12 +60,17 @@ class YunoErrorProtocol(Protocol):
     ) -> tuple[int, tuple[int, ...]]: ...
 
 
+class PaletteColour(NamedTuple):
+    _hex: int
+    _rgb: tuple[int, ...]
+
+
 class Palette(TypedDict):
-    success: tuple[int, tuple[int, int, int]]
-    error: tuple[int, tuple[int, int, int]]
-    neutral: tuple[int, tuple[int, int, int]]
-    pending: tuple[int, tuple[int, int, int]]
-    cancelled: tuple[int, tuple[int, int, int]]
+    success: PaletteColour
+    error: PaletteColour
+    neutral: PaletteColour
+    pending: PaletteColour
+    cancelled: PaletteColour
 
 
 class YunoColours:
@@ -84,11 +90,11 @@ class YunoColours:
         #2a363b	(42,54,59) -> cancelled
         """
         return Palette(
-            success=(0x99B898, (153, 184, 152)),
-            error=(0xE84A5F, (232, 74, 95)),
-            neutral=(0xFACEA8, (250, 206, 168)),
-            pending=(0xFF847C, (255, 132, 124)),
-            cancelled=(0x2A363B, (42, 54, 59)),
+            success=PaletteColour(0x99b898, (153, 184, 152)),
+            error=PaletteColour(0xe84a5f, (232, 74, 95)),
+            neutral=PaletteColour(0xfacea8, (250, 206, 168)),
+            pending=PaletteColour(0xff847c, (255, 132, 124)),
+            cancelled=PaletteColour(0x2a363b, (42, 54, 59)),
         )
 
 

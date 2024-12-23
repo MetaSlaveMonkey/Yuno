@@ -8,6 +8,7 @@ from discord import utils
 from discord.ext import commands
 
 from ..classes import YGuild, YUser
+from ..utils import FakeRecord
 
 if TYPE_CHECKING:
     from ..main import Yuno
@@ -30,7 +31,6 @@ class DiscordEventHandler(commands.Cog, name="Discord Event Handler"):
 
             log.info(f"Joined guild {guild.name} ({guild.id})")
 
-        # chuncked users
         user_chunked = await guild.chunk()
         user_list = [self.bot.get_user(user.id) for user in user_chunked]
 
@@ -43,20 +43,20 @@ class DiscordEventHandler(commands.Cog, name="Discord Event Handler"):
         ]
         if legit_users is None:
             log.info(f"Leaving guild {guild.name} ({guild.id})")
-            return await guild.leave()  # Probably a bot farm server.
+            return await guild.leave()
+        
             # Note for self: Remeber to put this in the kb.
-
         if len(legit_users) > 10 or guild.id not in self.bot.cached_guilds:
-            return log.info(
-                f"Skipping guild {guild.name} ({guild.id}) due to the number of users."
-            )
+            log.info(f"Leaving guild {guild.name} ({guild.id} - {len(legit_users)} users)")
+            return await guild.leave()
+        
+        _users = [
+            YUser(FakeRecord({"user_id": user.id, "time_zone": "UTC", "locale": "en_US"}))
+            for user in legit_users if user is not None
+        ]
 
-        async with self.bot.pool.acquire() as conn:
-            for user in legit_users:
-                if user is None:
-                    continue
-
-                ...  # Do something with the user
+        await self.bot.insert_many_users(_users)
+        log.info(f"Inserted {len(_users)} users into the database")
 
 
 async def setup(bot: Yuno) -> None:

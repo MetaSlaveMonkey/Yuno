@@ -14,6 +14,7 @@ from .embed import YEmbed
 if TYPE_CHECKING:
     from discord.ext.commands import Context
 
+    from ..utils import FakeRecord
     from ..main import Yuno
 
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class YUser:
-    def __init__(self, record: asyncpg.Record) -> None:
+    def __init__(self, record: asyncpg.Record | FakeRecord) -> None:
         self.user_id = record["user_id"]
         self.time_zone = record["time_zone"]
         self.locale = record["locale"]
