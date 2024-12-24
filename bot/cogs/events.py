@@ -38,21 +38,20 @@ class DiscordEventHandler(commands.Cog, name="Discord Event Handler"):
         # Reddit post: https://www.reddit.com/r/discordapp/comments/7k3yff/about_bot_farms/
         # I've stumbled across this post, and was like wtf? Why would someone do this?
         # Anyways ... Here's the code to prevent this.
-        legit_users = [
-            self.bot.get_user(user.id) for user in user_list if user and not user.bot
-        ]
+        legit_users = [self.bot.get_user(user.id) for user in user_list if user and not user.bot]
         if legit_users is None:
             log.info(f"Leaving guild {guild.name} ({guild.id})")
             return await guild.leave()
-        
+
             # Note for self: Remeber to put this in the kb.
         if len(legit_users) > 10 or guild.id not in self.bot.cached_guilds:
             log.info(f"Leaving guild {guild.name} ({guild.id} - {len(legit_users)} users)")
             return await guild.leave()
-        
+
         _users = [
             YUser(FakeRecord({"user_id": user.id, "time_zone": "UTC", "locale": "en_US"}))
-            for user in legit_users if user is not None
+            for user in legit_users
+            if user is not None
         ]
 
         await self.bot.insert_many_users(_users)

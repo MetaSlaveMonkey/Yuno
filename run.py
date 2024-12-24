@@ -12,12 +12,8 @@ load_dotenv()
 
 def main():
     parser = argparse.ArgumentParser(description="Run the bot.")
-    parser.add_argument(
-        "--discord_token", default=os.getenv("DISCORD_TOKEN"), help="Discord bot token"
-    )
-    parser.add_argument(
-        "--postgres_user", default=os.getenv("POSTGRES_USER"), help="PostgreSQL user"
-    )
+    parser.add_argument("--discord_token", default=os.getenv("DISCORD_TOKEN"), help="Discord bot token")
+    parser.add_argument("--postgres_user", default=os.getenv("POSTGRES_USER"), help="PostgreSQL user")
     parser.add_argument(
         "--postgres_password",
         default=os.getenv("POSTGRES_PASSWORD"),
@@ -28,12 +24,8 @@ def main():
         default=os.getenv("POSTGRES_DB"),
         help="PostgreSQL database name",
     )
-    parser.add_argument(
-        "--postgres_host", default=os.getenv("POSTGRES_HOST"), help="PostgreSQL host"
-    )
-    parser.add_argument(
-        "--postgres_port", default=os.getenv("POSTGRES_PORT"), help="PostgreSQL port"
-    )
+    parser.add_argument("--postgres_host", default=os.getenv("POSTGRES_HOST"), help="PostgreSQL host")
+    parser.add_argument("--postgres_port", default=os.getenv("POSTGRES_PORT"), help="PostgreSQL port")
     parser.add_argument(
         "--owner_ids",
         default=os.getenv("OWNER_IDS"),

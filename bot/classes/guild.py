@@ -21,9 +21,7 @@ class YGuild:
         self.added_at = record["added_at"]
 
     @staticmethod
-    async def upsert_guild(
-        db: asyncpg.Connection, guild_id: int, locale: str = "en_US"
-    ) -> YGuild:
+    async def upsert_guild(db: asyncpg.Connection, guild_id: int, locale: str = "en_US") -> YGuild:
         await db.execute(
             """
             INSERT INTO guilds (guild_id, prefix, locale)
@@ -65,21 +63,15 @@ class YGuild:
 
     @staticmethod
     async def get_locale(db: asyncpg.Connection, guild_id: int) -> str:
-        record = await db.fetchval(
-            "SELECT locale FROM guilds WHERE guild_id = $1", guild_id
-        )
+        record = await db.fetchval("SELECT locale FROM guilds WHERE guild_id = $1", guild_id)
 
         return record or "en_US"
 
     @staticmethod
     async def get_prefix(db: asyncpg.Connection, guild_id: int) -> list[str]:
-        records = await db.fetch(
-            "SELECT prefix FROM guilds WHERE guild_id = $1", guild_id
-        )
+        records = await db.fetch("SELECT prefix FROM guilds WHERE guild_id = $1", guild_id)
         return [record["prefix"] for record in records] if records else ["y"]
 
     @staticmethod
     async def update_prefix(db: asyncpg.Connection, guild_id: int, prefix: str) -> None:
-        await db.execute(
-            "UPDATE guilds SET prefix = $1 WHERE guild_id = $2", prefix, guild_id
-        )
+        await db.execute("UPDATE guilds SET prefix = $1 WHERE guild_id = $2", prefix, guild_id)

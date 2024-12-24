@@ -1,0 +1,4 @@
+[tool.black]
+line-length = 125
+skip-string-normalization = true
+force-exclude = ".+.gif|.+.txt|.+.sql|.+.json|.+.md|.+.ttf|.+.yml|.+.env"

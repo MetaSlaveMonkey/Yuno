@@ -81,21 +81,15 @@ class YUser:
         return YEmbed.default(
             ctx,
             title="User Settings",
-            description=(
-                f"**Time Zone:** {user.time_zone}\n" f"**Locale:** {user.locale}"
-            ),
+            description=(f"**Time Zone:** {user.time_zone}\n" f"**Locale:** {user.locale}"),
         )
 
     @classmethod
-    async def from_discord_user(
-        cls, db: asyncpg.Connection, user: discord.User | discord.Member
-    ) -> YUser:
+    async def from_discord_user(cls, db: asyncpg.Connection, user: discord.User | discord.Member) -> YUser:
         return await cls.upsert_user(db, user.id)
 
     @classmethod
-    async def get_user_language(
-        cls, db: asyncpg.Connection, user: discord.User | discord.Member
-    ) -> str:
+    async def get_user_language(cls, db: asyncpg.Connection, user: discord.User | discord.Member) -> str:
         record = await db.fetchrow(
             """
             SELECT locale FROM users
@@ -110,9 +104,7 @@ class YUser:
 
 
 class FuzzyMember(Converter):
-    async def convert(
-        self, ctx: Context[Yuno], argument: str
-    ) -> Optional[discord.Member]:
+    async def convert(self, ctx: Context[Yuno], argument: str) -> Optional[discord.Member]:
         assert ctx.guild is not None  # Check happens on command invocation
 
         if argument is None:

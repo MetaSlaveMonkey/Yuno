@@ -4,9 +4,20 @@ import asyncio
 import functools
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from typing import (TYPE_CHECKING, Any, AsyncIterator, Awaitable, Callable,
-                    Iterable, Iterator, Optional, ParamSpec, Type, TypeVar,
-                    overload)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Iterable,
+    Iterator,
+    Optional,
+    ParamSpec,
+    Type,
+    TypeVar,
+    overload,
+)
 
 import discord
 from discord.app_commands import Command as AppCommand
@@ -52,7 +63,6 @@ def module_ruleset(decorator: Callable[[T], T]) -> Callable[[Type[T]], Type[T]]:
             if isinstance(attr, (AppCommand, ExtCommand)):
                 setattr(cls, attr_name, decorator(attr))  # type: ignore
                 # ^ idk how to type this -> its working tho so i guess its fine
-
         return cls
 
     return decorate
@@ -74,9 +84,7 @@ def run_async(func: Callable[P, T]) -> Callable[P, Awaitable[T]]:
 
     @functools.wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        return await asyncio.get_event_loop().run_in_executor(
-            executor, functools.partial(func, *args, **kwargs)
-        )
+        return await asyncio.to_thread(func, *args, **kwargs)
 
     return wrapper
 
@@ -94,9 +102,7 @@ class MessagePreview:
         The embed to send, by default None
     """
 
-    def __init__(
-        self, ctx: Context[Yuno], content: str, embed: Optional[YEmbed] = None
-    ) -> None:
+    def __init__(self, ctx: Context[Yuno], content: str, embed: Optional[YEmbed] = None) -> None:
         self.ctx = ctx
         self.embed = embed
         self.content = content

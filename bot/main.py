@@ -11,13 +11,12 @@ import logging
 import os
 import pathlib
 import re
-from typing import (TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set,
-                    Tuple, Union)
+from typing import TYPE_CHECKING, Any, Dict, DefaultDict, List, Optional, Set, Tuple, Union
 
 import aiohttp
 import asyncpg
 import discord
-import orjson
+from collections import defaultdict
 from discord import Interaction, Message
 from discord.ext import commands, tasks
 
@@ -35,6 +34,14 @@ class AsyncUserCache:
     def __init__(self) -> None:
         self._cache: Dict[int, YUser] = {}
         self._lock = asyncio.Lock()
+
+    async def set_user(self, user: YUser) -> None:
+        async with self._lock:
+            self._cache[user.user_id] = user
+
+    async def get_users(self) -> List[YUser]:
+        async with self._lock:
+            return list(self._cache.values())
 
     async def get_user(self, db: asyncpg.Connection, user_id: int) -> YUser:
         async with self._lock:
@@ -66,21 +73,24 @@ class Yuno(commands.Bot):
         dns: str,
         *,
         session: Optional[aiohttp.ClientSession] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
         intents: discord.Intents,
         **kwargs: Any,
     ) -> None:
         super().__init__(
-            self.get_prefix,  # type: ignore
+            command_prefix=self.get_prefix,  # type: ignore
             case_insensitive=True,
             owner_ids=config.get_owner_ids(),
             intents=intents,
+            chunk_guilds_at_startup=False,
+            max_messages=2000,
+            **kwargs,
         )
-        self.token = token
         self.dns = dns
+        self.token = token
         self.session = session
         self.config = Config()
-        self.user_cache = AsyncUserCache()
+        self._admin_only: bool = False
+        self.strip_after_prefix = True
         self.pool: Optional[asyncpg.pool.Pool] = None
 
         self.OWNER_IDS: List[int] = self.config.get_owner_ids()
@@ -88,25 +98,41 @@ class Yuno(commands.Bot):
         self._run_db_migrations: bool = self.config.RUN_DB_MIGRATIONS
         self._extensions = [p.stem for p in pathlib.Path(".").glob("./bot/cogs/*.py")]
 
-        self.cached_users: Dict[int, YUser] = {}
+        self.user_cache = AsyncUserCache()
         self.cached_guilds: Dict[int, YGuild] = {}
-        self.cached_prefixes: Dict[int, List[str]] = {}
+        self.cached_prefixes: DefaultDict[int, list[re.Pattern[str]]] = defaultdict(list)
 
     async def setup_hook(self) -> None:
         if self.session is None:
             self.session = aiohttp.ClientSession()
 
-        if self._run_db_migrations:
-            sql_path = pathlib.Path("./bot/sql")
-            sql_files = sorted(sql_path.glob("*.sql"))
+        def serializer(obj: Any) -> str:
+            return discord.utils._to_json(obj)
 
-            if self.pool is None:
-                self.pool = await asyncpg.create_pool(self.config.get_dsn())
+        def deserializer(s: str) -> Any:
+            return discord.utils._from_json(s)
 
-            async with self.pool.acquire() as conn:
-                for sql_file in sql_files:
-                    with open(sql_file, "r") as f:
-                        await conn.execute(f.read())
+        prep_init = self._run_db_migrations
+
+        async def init(conn: asyncpg.Connection) -> None:
+            await conn.set_type_codec(
+                typename="json",
+                encoder=serializer,
+                decoder=deserializer,
+                schema="pg_catalog",
+                format="text",
+            )
+            if prep_init is not None:
+                sql_path = pathlib.Path("./bot/sql")
+                sql_files = sorted(sql_path.glob("*.sql"))
+
+                if self.pool is None:
+                    self.pool = await asyncpg.create_pool(self.config.get_dsn(), init=init)
+
+                async with self.pool.acquire() as conn:
+                    for sql_file in sql_files:
+                        with open(sql_file, "r") as f:
+                            await conn.execute(f.read())
 
         for extension in self._extensions:
             await self.load_extension(f"bot.cogs.{extension}")
@@ -131,17 +157,18 @@ class Yuno(commands.Bot):
             records = await conn.fetch("SELECT * FROM users")
 
         for record in records:
-            if record["user_id"] in self.cached_users:
+            if record["user_id"] in self.user_cache._cache:
                 continue
 
             user = YUser(record)
-            self.cached_users[user.user_id] = user
+            await self.user_cache.set_user(user)
 
     async def fill_guild_cache(self) -> None:
         assert self.pool is not None, "Pool is not initialized."
 
         async with self.pool.acquire() as conn:
             records = await conn.fetch("SELECT * FROM guilds")
+
         for record in records:
             if record["guild_id"] in self.cached_guilds:
                 continue
@@ -153,26 +180,36 @@ class Yuno(commands.Bot):
         assert self.pool is not None, "Pool is not initialized."
 
         async with self.pool.acquire() as conn:
-            records = await conn.fetch("SELECT * FROM guilds")
+            records = await conn.fetch("SELECT * FROM prefix")
 
-        self.cached_prefixes = {
-            record["guild_id"]: [
-                record["prefix"]
-                for record in records
-                if record["guild_id"] == record["guild_id"]
-            ]
-            for record in records
-        }
+        for record in records:
+            if record["guild_id"] in self.cached_prefixes:
+                self.cached_prefixes[record["guild_id"]].append(record["prefix"])
+            else:
+                self.cached_prefixes[record["guild_id"]] = [record["prefix"]]
+
+        log.debug(self.cached_prefixes)
 
     async def get_prefix(self, message: discord.Message, /) -> Union[str, List[str]]:
-        if not message.guild:
-            if match := re.match(re.escape("y"), message.content, re.I):
+        if self.pool is None:
+            raise RuntimeError("Bot has not been initialized correctly.")
+
+        if message.guild is None:
+            if match := re.match(re.escape('y'), message.content, re.I):
                 return match.group(0)
 
-        if message.guild.id in self.cached_prefixes:  # type: ignore - fuck you!
-            regex: re.Pattern[str] = re.compile("|".join(map(re.escape, self.cached_prefixes[message.guild.id])), re.I)  # type: ignore
-            if match := regex.match(message.content):
-                return match.group(0)
+            return commands.when_mentioned_or(*("y", "y "))(self, message)
+
+        if not message.guild.id in self.cached_prefixes:
+            prefix_query = "SELECT prefix from prefix WHERE guild_id = $1"
+            async with self.pool.acquire() as conn:
+                records = await conn.fetch(prefix_query, message.guild.id)
+                pattern = re.compile("|".join([re.escape(r["prefix"]) for r in records]), re.I)
+
+                self.cached_prefixes[message.guild.id] = [pattern]
+
+        if match := self.cached_prefixes[message.guild.id][0].match(message.content):
+            return match.group(0)
 
         return commands.when_mentioned(self, message)
 
@@ -203,19 +240,9 @@ class Yuno(commands.Bot):
 
     async def close(self) -> None:
         closables = [self.session, self.pool]
-
-        for closable in closables:
-            if closable:
-                await closable.close()
+        await asyncio.gather(*[c.close() for c in closables if c is not None])
 
         await super().close()
-
-    async def send_self_destructing_message(
-        self, ctx: commands.Context, content: str, *, delete_after: float = 10.0
-    ) -> None:
-        msg = await ctx.send(content)
-        await asyncio.sleep(delete_after)
-        await msg.delete()
 
 
 def main() -> None:
@@ -223,9 +250,7 @@ def main() -> None:
     token = config.TOKEN
 
     if not token:
-        return log.error(
-            "No token provided. Please set the DISCORD_TOKEN environment variable."
-        )
+        return log.error("No token provided. Please set the DISCORD_TOKEN environment variable.")
 
     dsn = config.get_dsn()
 

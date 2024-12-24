@@ -3,9 +3,16 @@ from __future__ import annotations
 import asyncio
 import logging
 from enum import Enum
-from typing import (TYPE_CHECKING, Any, Generic, Literal, Optional, Protocol,
-                    Type, TypedDict, TypeVar, Union, overload,
-                    runtime_checkable, NamedTuple)
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Protocol,
+    Type,
+    TypedDict,
+    TypeVar,
+    runtime_checkable,
+    NamedTuple,
+)
 
 from discord.ext import commands
 
@@ -51,13 +58,9 @@ class YunoErrorProtocol(Protocol):
 
     def create_embed(self, ctx: Context[Yuno]) -> YEmbed: ...
 
-    async def handle(
-        self, ctx: Context[Yuno], message: Optional[str] = None
-    ) -> None: ...
+    async def handle(self, ctx: Context[Yuno], message: Optional[str] = None) -> None: ...
 
-    def get_colour(
-        self, palette: Optional[Palette] = None
-    ) -> tuple[int, tuple[int, ...]]: ...
+    def get_colour(self, palette: Optional[Palette] = None) -> tuple[int, tuple[int, ...]]: ...
 
 
 class PaletteColour(NamedTuple):
@@ -90,11 +93,11 @@ class YunoColours:
         #2a363b	(42,54,59) -> cancelled
         """
         return Palette(
-            success=PaletteColour(0x99b898, (153, 184, 152)),
-            error=PaletteColour(0xe84a5f, (232, 74, 95)),
-            neutral=PaletteColour(0xfacea8, (250, 206, 168)),
-            pending=PaletteColour(0xff847c, (255, 132, 124)),
-            cancelled=PaletteColour(0x2a363b, (42, 54, 59)),
+            success=PaletteColour(0x99B898, (153, 184, 152)),
+            error=PaletteColour(0xE84A5F, (232, 74, 95)),
+            neutral=PaletteColour(0xFACEA8, (250, 206, 168)),
+            pending=PaletteColour(0xFF847C, (255, 132, 124)),
+            cancelled=PaletteColour(0x2A363B, (42, 54, 59)),
         )
 
 
@@ -111,16 +114,12 @@ class YunoError(Exception):
 
 
 class YunoCommandError(commands.CommandError, YunoError):
-    def get_colour(
-        self, palette: Optional[Palette] = None
-    ) -> tuple[int, tuple[int, ...]]:
+    def get_colour(self, palette: Optional[Palette] = None) -> tuple[int, tuple[int, ...]]:
         if palette is None:
             return YunoColours.friday_palette()[self.level]
         return palette[self.level]
 
-    async def send_timed_response(
-        self, ctx: Context[Yuno], message: str, time: int = 5
-    ) -> None:
+    async def send_timed_response(self, ctx: Context[Yuno], message: str, time: int = 5) -> None:
         async with MessagePreview(ctx, message) as _:
             return await asyncio.sleep(time)
 
@@ -187,3 +186,23 @@ class YunoCommandErrorFactory:
 
     def __str__(self) -> str:
         return self.level.value
+
+    @staticmethod
+    def error(message: str) -> YunoCommandError:
+        return YunoCommandError(message)
+
+    @staticmethod
+    def success(message: str) -> YunoCommandSuccess:
+        return YunoCommandSuccess(message)
+
+    @staticmethod
+    def neutral(message: str) -> YunoCommandNeutral:
+        return YunoCommandNeutral(message)
+
+    @staticmethod
+    def pending(message: str) -> YunoCommandOnCooldown:
+        return YunoCommandOnCooldown(message)
+
+    @staticmethod
+    def cancelled(message: str) -> YunoCommandCancelled:
+        return YunoCommandCancelled(message)

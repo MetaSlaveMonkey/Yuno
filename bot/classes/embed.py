@@ -20,9 +20,7 @@ class YEmbed(Embed):
     @classmethod
     def default(cls, ctx: Context, **kwargs: Any) -> YEmbed:
         embed = cls(timestamp=utils.utcnow(), **kwargs)
-        embed.set_footer(
-            text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url
-        )
+        embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url)
         return embed
 
     @classmethod
