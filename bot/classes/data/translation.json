@@ -1,10 +1,42 @@
 {
     "en_US": {
-        "user_commands": {
+        "commands": {
+            "pat": {
+                "description": [
+                    "{author} patted {target}.",
+                    "{target} got patted by {author}.",
+                    "{author} patted {target} on the head.",
+                    "{target} was patted on the head by {author}."
+                ],
+                "emoji": "🤚",
+                "footer": "{author} patted {target} {count} times."
+            },
+            "lick": {
+                "description": [
+                    "{author} licked {target}.",
+                    "{target} got licked by {author}.",
+                    "{author} licked {target} on the face.",
+                    "{target} got licked on the face by {author}."
+                ],
+                "emoji": "👅",
+                "footer": "{author} licked {target} {count} times."
+            },
+            "poke": {
+                "description": [
+                    "{author} poked {target}.",
+                    "{target} got poked by {author}.",
+                    "Hey! {author} poked {target}.",
+                    "{target} got poked by {author} on the shoulder."
+                ],
+                "emoji": "👉",
+                "footer": "{author} poked {target} {count} times."
+            },
             "time": {
                 "message": "It is currently **{time}** for {user}.",
-                "invoke_error": "Failed to get the current time.",
-                "command_error": "Sorry, I couldn't get the current time for you.",
+                "errors": {
+                    "invoke_error": "Failed to get the current time.",
+                    "command_error": "Sorry, I couldn't get the current time for you."
+                },
                 "help": {
                     "description": "Display your current time or another user's time.",
                     "usage": "time [user]"
@@ -34,214 +66,55 @@
                     "timezone": {
                         "success": "Successfully set the time zone to {timezone}.",
                         "fail": "Failed to set the time zone to {timezone}."
-                    }
+                    },
+                    "fallback_error": "Please provide a valid subcommand."
+                },
+                "help": {
+                    "description": "Set various user preferences.",
+                    "usage": "userset <subcommand> [value]"
                 }
             },
             "leaderboard": {
                 "message": "Here are the top {n} users with the most {interaction} commands:\n{leaderboard}",
                 "help": {
-                    "description": "Display the top users with the most commands.",
-                    "usage": "leaderboard [type] [n]"
-                },
-                "invalid_interaction": "Invalid interaction type. Please choose from:\n{interactions}."
-            },
-            "counter": {
-                "message": "Here are your personal command counts:\n{counter}",
-                "other": "Here are {target}'s command counts:\n{counter}",
-                "linked": "Here is your personal command count with {target}:\n{counter}",
-                "help": {
-                    "description": "Display your personal or another user's command counts.",
-                    "usage": "counter [user] [linked]"
+                    "description": "Display the leaderboard for a specific interaction.",
+                    "usage": "leaderboard [interaction]"
                 }
             }
         },
-        "admin_commands": {
+        "errors": {
+            "invalid_command": "The command `{command}` is invalid. Use `{prefix}help` to see available commands.",
+            "missing_permissions": "You do not have the required permissions to use this command.",
+            "command_on_cooldown": "This command is on cooldown. Please try again after {time}.",
+            "user_not_found": "User `{user}` not found.",
+            "invalid_subcommand": "Invalid subcommand `{subcommand}` for `{command}`."
+        },
+        "general": {
+            "farewell_message": "Goodbye, {user}! We hope to see you again.",
+            "no_results": "No results found for `{query}`.",
+            "welcome_message": {
+                "message": "Welcome, {user}! We hope you enjoy your stay.",
+                "footer": "You're the {n}th user to join the server."
+            },
+            "prefix": "The command prefix for this server is `{prefix}`."
+        },
+        "settings": {
             "prefix": {
-                "subcommands": {
-                    "set": {
-                        "success": "Successfully set the prefix to `{prefix}`.",
-                        "fail": "Failed to set the prefix to `{prefix}`."
-                    },
-                "list": {
-                    "message": "Here are the current prefixes:\n{prefixes}",
-                    "empty": "There are no custom prefixes set."
-                },
-                "reset": {
-                    "success": "Successfully reset the prefix to `y`.",
-                    "fail": "Failed to reset the prefix to `y`."
-                }}
+                "changed": "Command prefix successfully changed to `{prefix}`.",
+                "invalid": "Invalid prefix provided. Please try a different one."
             },
-            "guildset": {
-                "aliases": ["gset"],
-                "subcommands": {
-                    "language": {
-                        "success": "Successfully set the language to {language}.",
-                        "fail": "Failed to set the language to {language}."
-                    }
-                }
-            }
-        },
-        "reminder": {
-            "owo_bot": {
-                "hunt_battle_reminder": "**Reminder:** {author} it is time to hunt and battle! 🦉",
-                "owo_reminder": "**Reminder:** {author} OwO!",
-                "pray_curse_reminder": "**Reminder:** {author} it is time to pray and curse! 🙏",
-                "huntbot_reminder": "**Reminder:** {author} your huntbot is ready! 🤖"
+            "notifications": {
+                "enabled": "Notifications have been enabled.",
+                "disabled": "Notifications have been disabled."
             },
-            "timed": {
-                "reminder": "**Reminder:** {author} {message}"
-            }
-
-        },
-        "interactions": {
-            "bad": {
-                "slap": {
-                    "description": [
-                        "{author} slapped {target}.",
-                        "{target} got slapped by {author}.",
-                        "{author} slapped {target} in the face.",
-                        "{target} got slapped in the face by {author}."
-                    ],
-                    "emoji": "👋",
-                    "footer": "{author} slapped {target} {count} times."
-                },
-                "kick": {
-                    "description": [
-                        "{author} kicked {target}.",
-                        "{target} got kicked by {author}.",
-                        "{author} kicked {target} in the butt.",
-                        "{target} got kicked in the butt by {author}."
-                    ],
-                    "emoji": "�",
-                    "footer": "{author} kicked {target} {count} times."
-                },
-                "punch": {
-                    "description": [
-                        "{author} punched {target}.",
-                        "{target} got punched by {author}.",
-                        "{author} punched {target} in the face.",
-                        "{target} got punched in the face by {author}."
-                    ],
-                    "emoji": "👊",
-                    "footer": "{author} punched {target} {count} times."
-                },
-                "kill": {
-                    "success": [
-                        "{author} killed {target}.",
-                        "{target} got killed by {author}.",
-                        "{author} killed {target} with a gun.",
-                        "{target} got killed with a gun by {author}."
-                    ],
-                    "fail": [
-                        "{author} tried to kill {target} but failed.",
-                        "{target} almost got killed by {author}.",
-                        "{author} tried to kill {target} but missed.",
-                        "{target} almost got killed by {author}."
-                    ],
-                    "emoji": "💀",
-                    "sfooter": "{author} killed {target} {count} times.",
-                    "ffooter": "{author} tried to kill {target} {count} times."
-                },
-                "bully": {
-                    "description": [
-                        "{author} bullied {target}.",
-                        "{target} got bullied by {author}.",
-                        "{author} bullied {target} in the school.",
-                        "{target} got bullied in the school by {author}."
-                    ],
-                    "emoji": "👊",
-                    "footer": "{author} bullied {target} {count} times."
-                },
-                "stalk": {
-                    "description": [
-                        "{author} stalked {target}.",
-                        "{target} got stalked by {author}.",
-                        "{author} stalked {target} in the park.",
-                        "{target} got stalked in the park by {author}."
-                    ],
-                    "emoji": "🕵️",
-                    "footer": "{author} stalked {target} {count} times."
-                }
+            "language": {
+                "changed": "Language successfully changed to `{language}`.",
+                "invalid": "Invalid language provided. Please try a different one."
             },
-            "good": {
-                "kiss": {
-                    "description": [
-                        "{author} kissed {target}.",
-                        "{target} got kissed by {author}.",
-                        "{author} kissed {target} on the cheek.",
-                        "{target} got kissed on the cheek by {author}."
-                    ],
-                    "emoji": "💋",
-                    "footer": "{author} kissed {target} {count} times."
-                },
-                "bite": {
-                    "description": [
-                        "{author} bit {target}.",
-                        "{target} got bitten by {author}.",
-                        "{author} bit {target} on the arm.",
-                        "{target} got bitten on the arm by {author}."
-                    ],
-                    "emoji": "🦷",
-                    "footer": "{author} bit {target} {count} times."
-                },
-                "hug": {
-                    "description": [
-                        "{author} hugged {target}.",
-                        "{target} got hugged by {author}.",
-                        "{author} hugged {target} tightly.",
-                        "{target} got hugged tightly by {author}."
-                    ],
-                    "emoji": "🤗",
-                    "footer": "{author} hugged {target} {count} times."
-                },
-                "cuddle": {
-                    "description": [
-                        "{author} cuddled {target}.",
-                        "{target} got cuddled by {author}.",
-                        "{author} cuddled {target} on the bed.",
-                        "{target} got cuddled on the bed by {author}."
-                    ],
-                    "emoji": "🥺",
-                    "footer": "{author} cuddled {target} {count} times."
-                },
-                "pat": {
-                    "description": [
-                        "{author} patted {target}.",
-                        "{target} got patted by {author}.",
-                        "{author} patted {target} on the head.",
-                        "{target} got patted on the head by {author}."
-                    ],
-                    "emoji": "🤚",
-                    "footer": "{author} patted {target} {count} times."
-                },
-                "lick": {
-                    "description": [
-                        "{author} licked {target}.",
-                        "{target} got licked by {author}.",
-                        "{author} licked {target} on the face.",
-                        "{target} got licked on the face by {author}."
-                    ],
-                    "emoji": "👅",
-                    "footer": "{author} licked {target} {count} times."
-                },
-                "poke": {
-                    "description": [
-                        "{author} poked {target}.",
-                        "{target} got poked by {author}.",
-                        "Hey! {author} poked {target}.",
-                        "{target} got poked by {author} on the shoulder."
-                    ],
-                    "emoji": "👉",
-                    "footer": "{author} poked {target} {count} times."
-                }
+            "timezone": {
+                "changed": "Time zone successfully changed to `{timezone}`.",
+                "invalid": "Invalid time zone provided. Please try a different one."
             }
         }
-    },
-    "vi_VN": "TODO",
-    "ja_JP": "TODO",
-    "de_DE": "TODO",
-    "fr_FR": "TODO",
-    "es_ES": "TODO",
-    "it_IT": "TODO",
-    "ru_RU": "TODO"
+    }
 }

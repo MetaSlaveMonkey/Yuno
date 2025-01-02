@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import functools
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
@@ -19,9 +20,12 @@ from typing import (
     overload,
 )
 
+import asyncpg
 import discord
 from discord.app_commands import Command as AppCommand
 from discord.ext.commands import Command as ExtCommand
+
+from ..classes import YUser
 
 if TYPE_CHECKING:
     from discord.ext.commands import Context
@@ -36,11 +40,22 @@ P = ParamSpec("P")
 executor = ThreadPoolExecutor()
 
 __all__: tuple[str, ...] = (
+    "async_try_catch",
     "run_async",
     "module_ruleset",
     "MessagePreview",
     "FakeRecord",
+    "AsyncUserCache",
+    "format_dt",
+    "CaseInsensitiveDict",
 )
+
+
+async def async_try_catch(func: Callable[..., T], *args, catch=Exception, ret=False, **kwargs):
+    try:
+        return await discord.utils.maybe_coroutine(func, *args, **kwargs)
+    except catch as e:
+        return e if ret else None
 
 
 def module_ruleset(decorator: Callable[[T], T]) -> Callable[[Type[T]], Type[T]]:
@@ -150,3 +165,71 @@ class FakeRecord:
             return tuple(list(self._data.values())[index])
         else:
             raise TypeError(f"Invalid index type: {type(index)}")
+        
+class AsyncUserCache:
+    def __init__(self) -> None:
+        self._cache: dict[int, YUser] = {}
+        self._lock = asyncio.Lock()
+
+    async def set_user(self, user: YUser) -> None:
+        async with self._lock:
+            self._cache[user.user_id] = user
+
+    async def get_users(self) -> list[YUser]:
+        async with self._lock:
+            return list(self._cache.values())
+
+    async def fetch_user(self, db: asyncpg.Connection, user_id: int) -> YUser:
+        async with self._lock:
+            if user_id not in self._cache:
+                await self.upsert_user(db, user_id)
+
+            return self._cache[user_id]
+        
+    async def get_user(self, user_id: int) -> Optional[YUser]:
+        async with self._lock:
+            return self._cache.get(user_id)
+
+    async def upsert_user(self, db: asyncpg.Connection, user_id: int) -> YUser:
+        async with self._lock:
+            user = await YUser.upsert_user(db, user_id)
+
+            self._cache[user_id] = user
+
+            return user
+
+    async def insert_many(self, db: asyncpg.Connection, users: list[YUser]) -> None:
+        async with self._lock:
+            await YUser.insert_many(db, users)
+
+            for user in users:
+                self._cache[user.user_id] = user
+
+
+def format_dt(dt: datetime.datetime, style: Optional[str] = None) -> str:
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+
+    if style is None:
+        return f'<t:{int(dt.timestamp())}>'
+    return f'<t:{int(dt.timestamp())}:{style}>'
+
+
+class CaseInsensitiveDict(dict):
+    def __contains__(self, k):
+        return super().__contains__(k.casefold())
+
+    def __delitem__(self, k):
+        return super().__delitem__(k.casefold())
+
+    def __getitem__(self, k):
+        return super().__getitem__(k.casefold())
+
+    def get(self, k, default=None):
+        return super().get(k.casefold(), default)
+
+    def pop(self, k, default=None):
+        return super().pop(k.casefold(), default)
+
+    def __setitem__(self, k, v):
+        super().__setitem__(k.casefold(), v)

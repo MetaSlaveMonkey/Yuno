@@ -13,7 +13,7 @@ from ..config import Config
 conf = Config()
 
 
-__all__ = ("YEmbed",)
+__all__: tuple[str, ...] = ("YEmbed",)
 
 
 class YEmbed(Embed):

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from ..main import Yuno
 
 
-__all__ = ("YUser", "FuzzyMember")
+__all__: tuple[str, ...] = ("YUser", "FuzzyMember")
 
 logger = logging.getLogger(__name__)
 
@@ -117,10 +117,6 @@ class FuzzyMember(Converter):
             member = members[0] if members else None
 
         if member is None:
-            return await ctx.bot.send_self_destructing_message(
-                ctx,
-                f"❌ | Unable to find a member with the name {argument}.",
-                delete_after=5,
-            )
+            return None
         else:
             return member

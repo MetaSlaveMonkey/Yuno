@@ -11,7 +11,7 @@ import logging
 import os
 import pathlib
 import re
-from typing import TYPE_CHECKING, Any, Dict, DefaultDict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, DefaultDict, Optional, Union
 
 import aiohttp
 import asyncpg
@@ -20,8 +20,9 @@ from collections import defaultdict
 from discord import Interaction, Message
 from discord.ext import commands, tasks
 
-from .classes import YEmbed, YGuild, YUser
+from .classes import YEmbed, YGuild, YUser, Translator
 from .config import Config
+from .utils import AsyncUserCache, CaseInsensitiveDict
 
 if TYPE_CHECKING:
     from discord.ext.commands import Context
@@ -30,47 +31,12 @@ log = logging.getLogger(__name__)
 config = Config()
 
 
-class AsyncUserCache:
-    def __init__(self) -> None:
-        self._cache: Dict[int, YUser] = {}
-        self._lock = asyncio.Lock()
-
-    async def set_user(self, user: YUser) -> None:
-        async with self._lock:
-            self._cache[user.user_id] = user
-
-    async def get_users(self) -> List[YUser]:
-        async with self._lock:
-            return list(self._cache.values())
-
-    async def get_user(self, db: asyncpg.Connection, user_id: int) -> YUser:
-        async with self._lock:
-            if user_id not in self._cache:
-                await self.upsert_user(db, user_id)
-
-            return self._cache[user_id]
-
-    async def upsert_user(self, db: asyncpg.Connection, user_id: int) -> YUser:
-        async with self._lock:
-            user = await YUser.upsert_user(db, user_id)
-
-            self._cache[user_id] = user
-
-            return user
-
-    async def insert_many(self, db: asyncpg.Connection, users: List[YUser]) -> None:
-        async with self._lock:
-            await YUser.insert_many(db, users)
-
-            for user in users:
-                self._cache[user.user_id] = user
-
-
 class Yuno(commands.Bot):
     def __init__(
         self,
         token: str,
         dns: str,
+        pool: asyncpg.pool.Pool,
         *,
         session: Optional[aiohttp.ClientSession] = None,
         intents: discord.Intents,
@@ -91,29 +57,39 @@ class Yuno(commands.Bot):
         self.config = Config()
         self._admin_only: bool = False
         self.strip_after_prefix = True
-        self.pool: Optional[asyncpg.pool.Pool] = None
+        self.uptime: datetime.datetime
+        self.pool: asyncpg.pool.Pool = pool
+        self.translator = Translator("classes/data/translation.json")
 
-        self.OWNER_IDS: List[int] = self.config.get_owner_ids()
+        self.OWNER_IDS: list[int] = self.config.get_owner_ids()
         self._extensions_loaded: asyncio.Event = asyncio.Event()
         self._run_db_migrations: bool = self.config.RUN_DB_MIGRATIONS
         self._extensions = [p.stem for p in pathlib.Path(".").glob("./bot/cogs/*.py")]
 
         self.user_cache = AsyncUserCache()
-        self.cached_guilds: Dict[int, YGuild] = {}
+        self.cached_guilds: dict[int, YGuild] = {}
         self.cached_prefixes: DefaultDict[int, list[re.Pattern[str]]] = defaultdict(list)
 
     async def setup_hook(self) -> None:
         if self.session is None:
             self.session = aiohttp.ClientSession()
 
+        for extension in self._extensions:
+            await self.load_extension(f"bot.cogs.{extension}")
+
+        self._extensions_loaded.set()
+
+        if not hasattr(self, 'uptime'):
+            self.uptime = discord.utils.utcnow()
+
+    @classmethod
+    async def setup_db(cls, dsn: str, migrations: bool = False) -> asyncpg.pool.Pool:
         def serializer(obj: Any) -> str:
             return discord.utils._to_json(obj)
-
+        
         def deserializer(s: str) -> Any:
             return discord.utils._from_json(s)
-
-        prep_init = self._run_db_migrations
-
+        
         async def init(conn: asyncpg.Connection) -> None:
             await conn.set_type_codec(
                 typename="json",
@@ -122,22 +98,19 @@ class Yuno(commands.Bot):
                 schema="pg_catalog",
                 format="text",
             )
-            if prep_init is not None:
-                sql_path = pathlib.Path("./bot/sql")
-                sql_files = sorted(sql_path.glob("*.sql"))
 
-                if self.pool is None:
-                    self.pool = await asyncpg.create_pool(self.config.get_dsn(), init=init)
+        pool = await asyncpg.create_pool(dsn, init=init)
 
-                async with self.pool.acquire() as conn:
-                    for sql_file in sql_files:
-                        with open(sql_file, "r") as f:
-                            await conn.execute(f.read())
+        if migrations:
+            sql_path = pathlib.Path("./bot/sql")
+            sql_files = sorted(sql_path.glob("*.sql"))
 
-        for extension in self._extensions:
-            await self.load_extension(f"bot.cogs.{extension}")
+            async with pool.acquire() as conn:
+                for sql_file in sql_files:
+                    with open(sql_file, "r") as f:
+                        await conn.execute(f.read())
 
-        self._extensions_loaded.set()
+        return pool
 
     async def on_ready(self) -> None:
         log.info(f"Logged in as {self.user} (ID: {self.user.id})")  # type: ignore (user is not None)
@@ -151,8 +124,6 @@ class Yuno(commands.Bot):
         await self.invoke(ctx)
 
     async def fill_user_cache(self) -> None:
-        assert self.pool is not None, "Pool is not initialized."
-
         async with self.pool.acquire() as conn:
             records = await conn.fetch("SELECT * FROM users")
 
@@ -164,8 +135,6 @@ class Yuno(commands.Bot):
             await self.user_cache.set_user(user)
 
     async def fill_guild_cache(self) -> None:
-        assert self.pool is not None, "Pool is not initialized."
-
         async with self.pool.acquire() as conn:
             records = await conn.fetch("SELECT * FROM guilds")
 
@@ -177,8 +146,6 @@ class Yuno(commands.Bot):
             self.cached_guilds[guild.guild_id] = guild
 
     async def fill_prefix_cache(self) -> None:
-        assert self.pool is not None, "Pool is not initialized."
-
         async with self.pool.acquire() as conn:
             records = await conn.fetch("SELECT * FROM prefix")
 
@@ -190,10 +157,7 @@ class Yuno(commands.Bot):
 
         log.debug(self.cached_prefixes)
 
-    async def get_prefix(self, message: discord.Message, /) -> Union[str, List[str]]:
-        if self.pool is None:
-            raise RuntimeError("Bot has not been initialized correctly.")
-
+    async def get_prefix(self, message: discord.Message, /) -> Union[str, list[str]]:
         if message.guild is None:
             if match := re.match(re.escape('y'), message.content, re.I):
                 return match.group(0)
@@ -214,9 +178,6 @@ class Yuno(commands.Bot):
         return commands.when_mentioned(self, message)
 
     async def add_user(self, user_id: int) -> YUser:
-        if self.pool is None:
-            self.pool = await asyncpg.create_pool(self.config.get_dsn())
-
         async with self.pool.acquire() as conn:
             return await self.user_cache.upsert_user(conn, user_id)
 
@@ -225,16 +186,10 @@ class Yuno(commands.Bot):
         if user:
             return user
 
-        if self.pool is None:
-            self.pool = await asyncpg.create_pool(self.config.get_dsn())
-
         async with self.pool.acquire() as conn:
             return await YUser.get_user(conn, user_id)
 
-    async def insert_many_users(self, users: List[YUser]) -> None:
-        if self.pool is None:
-            self.pool = await asyncpg.create_pool(self.config.get_dsn())
-
+    async def insert_many_users(self, users: list[YUser]) -> None:
         async with self.pool.acquire() as conn:
             await self.user_cache.insert_many(conn, users)
 
@@ -264,7 +219,9 @@ def main() -> None:
     async def _startup() -> None:
 
         async with aiohttp.ClientSession() as session:
-            bot = Yuno(token, dsn, session=session, intents=intents)
+            pool = await Yuno.setup_db(dsn, migrations=config.RUN_DB_MIGRATIONS)
+            bot = Yuno(token, dsn, session=session, intents=intents, pool=pool)
+            bot._BotBase__cogs = CaseInsensitiveDict()  # type: ignore
             await bot.start(token)
 
     asyncio.run(_startup())

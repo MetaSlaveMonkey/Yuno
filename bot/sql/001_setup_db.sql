@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS prefix (
     added_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS action (
+CREATE TABLE IF NOT EXISTS actions (
     user_id BIGINT NOT NULL,
     target_id BIGINT NOT NULL,
     action_type VARCHAR(255) NOT NULL,
@@ -28,30 +28,76 @@ CREATE TABLE IF NOT EXISTS action (
     FOREIGN KEY (target_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 
-CREATE OR REPLACE FUNCTION insert_action_item(
-    p_user_id BIGINT,
-    p_target_id BIGINT,
-    p_action_type VARCHAR(255)
-) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION insert_action(one BIGINT, two TEXT, three BIGINT)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
 BEGIN
     IF EXISTS (
-        SELECT 1
-        FROM action
-        WHERE user_id = p_user_id
-          AND target_id = p_target_id
-          AND action_type = p_action_type
+        SELECT * FROM actions
+        WHERE user_id = one
+        AND action_type = two
+        AND target_id = three
     ) THEN
-        UPDATE action
+        UPDATE actions
         SET action_count = action_count + 1
-        WHERE user_id = p_user_id
-          AND target_id = p_target_id
-          AND action_type = p_action_type;
+        WHERE user_id = one
+        AND action_type = two
+        AND target_id = three;
     ELSE
-        INSERT INTO action (user_id, target_id, action_type, action_count)
-        VALUES (p_user_id, p_target_id, p_action_type, 1);
+        INSERT INTO actions (
+            user_id,
+            action_type,
+            target_id,
+            action_count
+        ) VALUES (one, two, three, 1);
     END IF;
-END;
-$$ LANGUAGE plpgsql;
+END $$;
+
+CREATE OR REPLACE FUNCTION get_total_action_count(one BIGINT, two TEXT)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN (
+        SELECT SUM(action_count) FROM actions
+        WHERE user_id = one
+        AND action_type = two
+    );
+END $$;
+
+CREATE OR REPLACE FUNCTION get_action_count(one BIGINT, two TEXT, three BIGINT)
+RETURNS INTEGER  -- action_count
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN (
+        SELECT action_count FROM actions
+        WHERE user_id = one
+        AND action_type = two
+        AND target_id = three
+    );
+END $$;
+
+CREATE OR REPLACE FUNCTION ensure_relationship(one BIGINT, two TEXT, three BIGINT)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT * FROM users
+        WHERE user_id = one
+    ) THEN
+        INSERT INTO users (user_id) VALUES (one);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT * FROM users
+        WHERE user_id = three
+    ) THEN
+        INSERT INTO users (user_id) VALUES (three);
+    END IF;
+END $$;
 
 CREATE OR REPLACE FUNCTION insert_default_prefix()
 RETURNS TRIGGER AS

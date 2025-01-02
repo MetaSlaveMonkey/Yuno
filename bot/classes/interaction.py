@@ -11,7 +11,7 @@ import orjson
 
 from .embed import YEmbed
 
-__all__ = ("UserInteractions",)
+__all__: tuple[str, ...] = ("UserInteractions",)
 
 
 class UserInteractions:
