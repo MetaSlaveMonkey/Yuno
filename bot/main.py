@@ -11,16 +11,16 @@ import logging
 import os
 import pathlib
 import re
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any, DefaultDict, Optional, Union
 
 import aiohttp
 import asyncpg
 import discord
-from collections import defaultdict
 from discord import Interaction, Message
 from discord.ext import commands, tasks
 
-from .classes import YEmbed, YGuild, YUser, Translator
+from .classes import Translator, YEmbed, YGuild, YUser
 from .config import Config
 from .utils import AsyncUserCache, CaseInsensitiveDict
 
@@ -86,10 +86,10 @@ class Yuno(commands.Bot):
     async def setup_db(cls, dsn: str, migrations: bool = False) -> asyncpg.pool.Pool:
         def serializer(obj: Any) -> str:
             return discord.utils._to_json(obj)
-        
+
         def deserializer(s: str) -> Any:
             return discord.utils._from_json(s)
-        
+
         async def init(conn: asyncpg.Connection) -> None:
             await conn.set_type_codec(
                 typename="json",
@@ -106,7 +106,8 @@ class Yuno(commands.Bot):
             sql_files = sorted(sql_path.glob("*.sql"))
 
             async with pool.acquire() as conn:
-                for sql_file in sql_files:
+                for n, sql_file in enumerate(sql_files, 1):
+                    log.info(f"Running migration {n}/{len(sql_files)}: {sql_file.name}")
                     with open(sql_file, "r") as f:
                         await conn.execute(f.read())
 

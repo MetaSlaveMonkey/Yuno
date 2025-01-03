@@ -9,12 +9,12 @@ from discord.audit_logs import F
 from discord.ext import commands
 from discord.ext.commands import Converter
 
+from ..utils import FakeRecord
 from .embed import YEmbed
 
 if TYPE_CHECKING:
     from discord.ext.commands import Context
 
-    from ..utils import FakeRecord
     from ..main import Yuno
 
 
@@ -100,12 +100,13 @@ class YUser:
         return record["locale"] if record else "en_US"
 
     @classmethod
-    async def fake_user(cls, id: int) -> YUser: ...  # todo...
+    async def fake_user(cls, id: int) -> YUser:
+        return cls(FakeRecord({"user_id": id, "time_zone": "UTC", "locale": "en_US", "added_at": None}))
 
 
 class FuzzyMember(Converter):
     async def convert(self, ctx: Context[Yuno], argument: str) -> Optional[discord.Member]:
-        assert ctx.guild is not None  # Check happens on command invocation
+        assert ctx.guild is not None  # Check happens on command invocation (we don't do dm commands)
 
         if argument is None:
             return None
@@ -116,7 +117,4 @@ class FuzzyMember(Converter):
             members = await ctx.guild.query_members(argument, limit=1)
             member = members[0] if members else None
 
-        if member is None:
-            return None
-        else:
-            return member
+        return member

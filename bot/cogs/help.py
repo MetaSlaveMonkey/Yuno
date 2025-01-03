@@ -1,35 +1,18 @@
 from __future__ import annotations
 
-import itertools
+import abc
 import difflib
 import functools
-import abc
-from typing import (
-    TYPE_CHECKING,
-    Generator,
-    Iterable,
-    Sequence,
-    Union,
-    Dict,
-    Mapping,
-    List,
-    Any,
-    TypeVar,
-    ParamSpec,
-    Concatenate,
-    NamedTuple,
-    Self,
-    TypeAlias,
-    Callable,
-    Type,
-    Optional,
-    Tuple,
-)
-
+import itertools
+from typing import (TYPE_CHECKING, Any, Callable, Concatenate, Dict, Generator,
+                    Iterable, List, Mapping, NamedTuple, Optional, ParamSpec,
+                    Self, Sequence, Tuple, Type, TypeAlias, TypeVar, Union)
 
 import discord
+from discord import SelectOption
 from discord.ext import commands
-from discord.ui import View, Button, Select
+from discord.ui import Button, Select, View
+from discord.utils import get
 
 from bot.classes.user import YUser
 
@@ -44,13 +27,15 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 P = ParamSpec("P")
 
-CommandType: TypeAlias = commands.Command[Any, ..., Any]
-CommandGroupType: TypeAlias = commands.Group[Any, ..., Any]
 
-HOME_EMOJI = "\N{HOUSE BUILDING}"
-STOP_LABEL = "Stop"
-GO_HOME_LABEL = "Go Home"
-GO_BACK_LABEL = "Go Back"
+def patch_init(__init__: Callable[Concatenate["HelpView", P], T]) -> Callable[Concatenate["HelpView", P], T]:
+    @functools.wraps(__init__)
+    async def wrapper(self: HelpView, *args: P.args, **kwargs: P.kwargs) -> T:
+        wrapped_ret = __init__(self, *args, **kwargs)
+        await self.setup_view()
+        return wrapped_ret
+
+    return wrapper  # type: ignore
 
 
 def grouper(n: int, iterable: Iterable[T]) -> Generator[Tuple[T, ...], None, None]:
@@ -65,38 +50,86 @@ def get_close_matches(word: str, possibilities: Sequence[str], n: int = 3, cutof
     return difflib.get_close_matches(word, possibilities, n, cutoff)
 
 
-async def fetch_user(ctx: Context, user_id: int) -> YUser:
-    async with ctx.bot.pool.acquire() as conn:
-        user = await ctx.bot.user_cache.fetch_user(conn, user_id)
-        await ctx.bot.user_cache.set_user(user)
-    return user
+class HomeButton(Button["HelpView"]):
+    def __init__(self, view: HelpView) -> None:
+        super().__init__(style=discord.ButtonStyle.blurple, label="\N{HOUSE BUILDING}")
+        self._view = view
 
+
+class StopButton(Button["HelpView"]):
+    def __init__(self, view: HelpView) -> None:
+        super().__init__(style=discord.ButtonStyle.danger, label="\N{NO ENTRY}")
+        self._view = view
+
+
+class BackButton(Button["HelpView"]):
+    def __init__(self, view: HelpView) -> None:
+        super().__init__(style=discord.ButtonStyle.secondary, label="\N{LEFTWARDS ARROW WITH HOOK}")
+        self._view = view
 
 
 class HelpTranslator:
-    def __init__(self, ctx: Context[Yuno]) -> None:
-        self.ctx = ctx
+    def __init__(self, ctx: Context[Yuno], user: YUser) -> None:
         self.bot: Yuno = ctx.bot
-
-        self._current_user: YUser
-
-    async def __aenter__(self) -> HelpTranslator:
-        await self._ainit()
-        return self
-    
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        await self._aexit()
-
-    async def _ainit(self) -> None:
-        user = await self.bot.user_cache.get_user(self.ctx.author.id)
-
-        if user is None:
-            user = await fetch_user(self.ctx, self.ctx.author.id)
-
         self._current_user = user
 
-    async def _aexit(self) -> None:
-        await self.bot.user_cache.set_user(self._current_user)
+    def get_translation(self, key: str) -> str | dict[str, str]:
+        return self.bot.translator.get_translation(key, self._current_user.locale)
 
-    def get_translation(self, key: str) -> str:
-        return self.bot.translator.get_translation(key, locale=self._current_user.locale)
+
+class HelpView(View, abc.ABC):
+    def __init_subclass__(cls) -> None:
+        cls.__init__ = patch_init(cls.__init__)  # type: ignore
+        return super().__init_subclass__()
+
+    def __init__(self, ctx: Context[Yuno], user: YUser, timeout: int = 60, parent: HelpView | None = None) -> None:
+        super().__init__(timeout=timeout)
+
+        self.ctx = ctx
+        self.user = user
+        self.bot: Yuno = ctx.bot
+        self.parent = parent
+
+        self._translator = HelpTranslator(self.ctx, self.user)
+
+    async def setup_view(self) -> None:
+        if self.parent is not None:
+            self.add_item(BackButton(self.parent))
+
+            home = self.find_home(self)
+            if home is not None:
+                self.add_item(HomeButton(home))
+
+        self.add_item(StopButton(self))
+
+    @abc.abstractmethod
+    def create_embed(self) -> YEmbed:
+        raise NotImplementedError
+
+    @staticmethod
+    def find_home(view: Optional[HelpView]) -> Optional[HelpView]:
+        home = view
+
+        if parent := getattr(home, "parent", None):
+            home = parent
+
+        if home is view:
+            return None
+
+        return home
+
+    async def interaction_check(self, interaction: discord.Interaction[discord.Client]) -> bool:
+        check = self.ctx.author.id == interaction.user.id
+
+        if not check:
+            await interaction.response.send_message("You can't use this view.", ephemeral=True)
+
+        return check
+
+    async def _get_class_info(self) -> dict[str, Any]:
+        return {
+            "ctx": self.ctx,
+            "user": self.user,
+            "timeout": self.timeout,
+            "parent": self.parent,
+        }

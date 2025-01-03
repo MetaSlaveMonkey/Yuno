@@ -11,7 +11,7 @@ load_dotenv()
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run the bot.")
+    parser = argparse.ArgumentParser(description="Yuno starter")
     parser.add_argument("--discord_token", default=os.getenv("DISCORD_TOKEN"), help="Discord bot token")
     parser.add_argument("--postgres_user", default=os.getenv("POSTGRES_USER"), help="PostgreSQL user")
     parser.add_argument(
@@ -42,10 +42,10 @@ def main():
 
     print(
         f"""
-       ▓██   ██▓ █    ██  ███▄    █  ▒█████    Made by 54b3r
+       ▓██   ██▓ █    ██  ███▄    █  ▒█████ 
        ▒██  ██▒ ██  ▓██▒ ██ ▀█   █ ▒██▒  ██▒   
-       ▒██ ██░▓██  ▒██░▓██  ▀█ ██▒▒██░  ██▒    Credits:
-       ░ ▐██▓░▓▓█  ░██░▓██▒  ▐▌██▒▒██   ██░    - bhv_permaban
+       ▒██ ██░▓██  ▒██░▓██  ▀█ ██▒▒██░  ██▒
+       ░ ▐██▓░▓▓█  ░██░▓██▒  ▐▌██▒▒██   ██░
        ░ ██▒▓░▒▒█████▓ ▒██░   ▓██░░ ████▓▒░    
        ██▒▒▒ ░▒▓▒ ▒ ▒ ░ ▒░   ▒ ▒ ░ ▒░▒░▒░      
        ▓██ ░▒░ ░░▒░ ░ ░ ░ ░░   ░ ▒░  ░ ▒ ▒░ 

@@ -1,5 +1,11 @@
 {
     "en_US": {
+        "cogs": {
+            "General": "General commands",
+            "Interaction": "Interactions commands",
+            "Settings": "Bot settings",
+            "Help": "Help command"
+        },
         "commands": {
             "pat": {
                 "description": [

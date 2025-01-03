@@ -3,16 +3,8 @@ from __future__ import annotations
 import asyncio
 import logging
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Protocol,
-    Type,
-    TypedDict,
-    TypeVar,
-    runtime_checkable,
-    NamedTuple,
-)
+from typing import (TYPE_CHECKING, NamedTuple, Optional, Protocol, Type,
+                    TypedDict, TypeVar, runtime_checkable)
 
 from discord.ext import commands
 

@@ -5,20 +5,9 @@ import datetime
 import functools
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    Iterable,
-    Iterator,
-    Optional,
-    ParamSpec,
-    Type,
-    TypeVar,
-    overload,
-)
+from typing import (TYPE_CHECKING, Any, AsyncIterator, Awaitable, Callable,
+                    Iterable, Iterator, Optional, ParamSpec, Type, TypeVar,
+                    overload)
 
 import asyncpg
 import discord
@@ -165,7 +154,8 @@ class FakeRecord:
             return tuple(list(self._data.values())[index])
         else:
             raise TypeError(f"Invalid index type: {type(index)}")
-        
+
+
 class AsyncUserCache:
     def __init__(self) -> None:
         self._cache: dict[int, YUser] = {}
@@ -185,7 +175,7 @@ class AsyncUserCache:
                 await self.upsert_user(db, user_id)
 
             return self._cache[user_id]
-        
+
     async def get_user(self, user_id: int) -> Optional[YUser]:
         async with self._lock:
             return self._cache.get(user_id)

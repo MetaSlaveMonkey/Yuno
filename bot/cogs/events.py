@@ -43,7 +43,7 @@ class DiscordEventHandler(commands.Cog, name="Discord Event Handler"):
             log.info(f"Leaving guild {guild.name} ({guild.id})")
             return await guild.leave()
 
-            # Note for self: Remeber to put this in the kb.
+        # Note for self: Remeber to put this in the kb.
         if len(legit_users) > 10 or guild.id not in self.bot.cached_guilds:
             log.info(f"Leaving guild {guild.name} ({guild.id} - {len(legit_users)} users)")
             return await guild.leave()
