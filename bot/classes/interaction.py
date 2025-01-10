@@ -3,13 +3,23 @@ from __future__ import annotations
 import random
 from itertools import count
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Optional
 
 import asyncpg
 import discord
 import orjson
 
 from .embed import YEmbed
+from ..config import Config
+
+if TYPE_CHECKING:
+    from discord.ext.commands import Context
+
+    from ..main import Yuno
+    
+
+
+conf = Config()
 
 __all__: tuple[str, ...] = ("UserInteractions",)
 
@@ -20,12 +30,28 @@ class UserInteractions:
 
     async def get_embed(
         self,
-        connection: asyncpg.Pool,
+        ctx: Context[Yuno],
         author: discord.Member | discord.User,
         target: discord.Member | discord.User,
-        interaction_name: str,
-        lang: str,
-    ) -> YEmbed: ...  # TODO: add translation logic
+        count: int,
+        footer: str,
+        description: str,
+        emoji: Optional[str] = None,
+    ) -> YEmbed:
+        embed = YEmbed.default(
+            ctx,
+            description=(
+                f"{emoji}" if emoji else "" +
+                description.format(author=author.display_name, target=target.display_name)
+            ),
+            footer=footer.format(
+                author=author.display_name,
+                target=target.display_name,
+                count=count,
+            )
+        )
+
+        return embed
 
     async def insert_action(self, db: asyncpg.Pool, author_id: int, target_id: int, action: str) -> None:
         await db.execute("SELECT insert_action_item($1, $2, $3)", author_id, target_id, action)

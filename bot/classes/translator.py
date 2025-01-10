@@ -30,6 +30,7 @@ class SubCommands(TypedDict, total=False):
 
 
 class Command(TypedDict, total=False):
+    name: str
     description: list[str]
     emoji: str
     footer: str
