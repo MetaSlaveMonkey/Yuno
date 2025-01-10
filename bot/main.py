@@ -12,7 +12,7 @@ import os
 import pathlib
 import re
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, DefaultDict, Optional, Union
+from typing import TYPE_CHECKING, Any, DefaultDict, Optional, Self
 
 import aiohttp
 import asyncpg
@@ -83,7 +83,7 @@ class Yuno(commands.Bot):
             self.uptime = discord.utils.utcnow()
 
     @classmethod
-    async def setup_db(cls, dsn: str, migrations: bool = False) -> asyncpg.pool.Pool:
+    async def setup_db(cls: Self, dsn: str, migrations: bool = False) -> asyncpg.pool.Pool:
         def serializer(obj: Any) -> str:
             return discord.utils._to_json(obj)
 
@@ -158,7 +158,7 @@ class Yuno(commands.Bot):
 
         log.debug(self.cached_prefixes)
 
-    async def get_prefix(self, message: discord.Message, /) -> Union[str, list[str]]:
+    async def get_prefix(self, message: discord.Message, /) -> str | list[str]:
         if message.guild is None:
             if match := re.match(re.escape('y'), message.content, re.I):
                 return match.group(0)
