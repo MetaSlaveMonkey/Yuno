@@ -73,7 +73,7 @@ class Yuno(commands.Bot):
     async def setup_hook(self) -> None:
         if self.session is None:
             self.session = aiohttp.ClientSession()
-
+            
         for extension in self._extensions:
             await self.load_extension(f"bot.cogs.{extension}")
 
@@ -82,8 +82,11 @@ class Yuno(commands.Bot):
         if not hasattr(self, 'uptime'):
             self.uptime = discord.utils.utcnow()
 
+        # Load translation files into memory
+        await self.translator.load_translations()
+
     @classmethod
-    async def setup_db(cls: Self, dsn: str, migrations: bool = False) -> asyncpg.pool.Pool:
+    async def setup_db(cls, dsn: str, migrations: bool = False) -> asyncpg.pool.Pool:
         def serializer(obj: Any) -> str:
             return discord.utils._to_json(obj)
 

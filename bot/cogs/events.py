@@ -49,7 +49,7 @@ class DiscordEventHandler(commands.Cog, name="Discord Event Handler"):
             return await guild.leave()
 
         _users = [
-            YUser(FakeRecord({"user_id": user.id, "time_zone": "UTC", "locale": "en_US"}))
+            YUser(FakeRecord({"user_id": user.id, "time_zone": "UTC", "locale": _guild.locale}))
             for user in legit_users
             if user is not None
         ]

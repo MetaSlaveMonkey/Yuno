@@ -6,6 +6,7 @@ import asyncpg
 import discord
 
 if TYPE_CHECKING:
+    from datetime import datetime
     from discord.ext.commands import Context
 
     from ..main import Yuno
@@ -16,9 +17,9 @@ __all__: tuple[str, ...] = ("YGuild",)
 
 class YGuild:
     def __init__(self, record: asyncpg.Record) -> None:
-        self.guild_id = record["guild_id"]
-        self.locale = record["locale"]
-        self.added_at = record["added_at"]
+        self.guild_id: int = record["guild_id"]
+        self.locale: str = record["locale"]
+        self.added_at: datetime = record["added_at"]
 
     @staticmethod
     async def upsert_guild(db: asyncpg.Connection, guild_id: int, locale: str = "en_US") -> YGuild:

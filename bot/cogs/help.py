@@ -50,79 +50,56 @@ def get_close_matches(word: str, possibilities: Sequence[str], n: int = 3, cutof
     return difflib.get_close_matches(word, possibilities, n, cutoff)
 
 
-class HomeButton(Button["HelpView"]):
-    def __init__(self, view: HelpView) -> None:
-        super().__init__(style=discord.ButtonStyle.blurple, label="\N{HOUSE BUILDING}")
-        self._view = view
-
-
-class StopButton(Button["HelpView"]):
-    def __init__(self, view: HelpView) -> None:
-        super().__init__(style=discord.ButtonStyle.danger, label="\N{NO ENTRY}")
-        self._view = view
-
-
-class BackButton(Button["HelpView"]):
-    def __init__(self, view: HelpView) -> None:
-        super().__init__(style=discord.ButtonStyle.secondary, label="\N{LEFTWARDS ARROW WITH HOOK}")
-        self._view = view
-
-
-class HelpTranslator:
-    def __init__(self, ctx: Context[Yuno], user: YUser) -> None:
-        self.bot: Yuno = ctx.bot
-        self._current_user = user
-
-    def get_translation(self, key: str) -> str | dict[str, str]:
-        return self.bot.translator.get_translation(key, self._current_user.locale)
-
-
 class HelpView(View, abc.ABC):
     def __init_subclass__(cls) -> None:
         cls.__init__ = patch_init(cls.__init__)  # type: ignore
         return super().__init_subclass__()
 
-    def __init__(self, ctx: Context[Yuno], user: YUser, timeout: int = 60, parent: HelpView | None = None) -> None:
+    def __init__(
+        self,
+        ctx: Context[Yuno],
+        user: YUser,
+        parent: Optional[HelpView] = None,
+        timeout: float = 180.0
+    ) -> None:
         super().__init__(timeout=timeout)
 
         self.ctx = ctx
         self.user = user
         self.bot: Yuno = ctx.bot
         self.parent = parent
-
         self._translator = HelpTranslator(self.ctx, self.user)
 
     async def setup_view(self) -> None:
         if self.parent is not None:
             self.add_item(BackButton(self.parent))
 
-            home = self.find_home(self)
-            if home is not None:
-                self.add_item(HomeButton(home))
+            root = self.find_root_view(self)
+            if root is not None:
+                self.add_item(HomeButton(root))
 
         self.add_item(StopButton(self))
 
     @abc.abstractmethod
-    def create_embed(self) -> YEmbed:
+    def to_embed(self) -> YEmbed:
         raise NotImplementedError
 
     @staticmethod
-    def find_home(view: Optional[HelpView]) -> Optional[HelpView]:
-        home = view
+    def find_root_view(view: Optional[HelpView]) -> Optional[HelpView]:
+        root_view = view
+        if parent_view := getattr(root_view, "parent", None):
+            root_view = parent_view
 
-        if parent := getattr(home, "parent", None):
-            home = parent
-
-        if home is view:
+        if root_view is view:
             return None
-
-        return home
+        
+        return root_view
 
     async def interaction_check(self, interaction: discord.Interaction[discord.Client]) -> bool:
         check = self.ctx.author.id == interaction.user.id
 
         if not check:
-            await interaction.response.send_message("You can't use this view.", ephemeral=True)
+            await interaction.response.send_message("You can't interact with this view.", ephemeral=True)
 
         return check
 
@@ -133,3 +110,46 @@ class HelpView(View, abc.ABC):
             "timeout": self.timeout,
             "parent": self.parent,
         }
+
+
+class HomeButton(Button["HelpView"]):
+    def __init__(self, view: HelpView) -> None:
+        super().__init__(
+            emoji="\N{HOUSE BUILDING}",
+            label="Home",
+            style=discord.ButtonStyle.primary
+        )
+        self.bot: Yuno = view.bot
+        self.parent = view.parent
+
+    async def callback(self, interaction: discord.Interaction[Yuno]) -> None:
+        return await interaction.response.edit_message(view=self.parent, embed=self.parent.to_embed())  # type: ignore
+
+class StopButton(Button["HelpView"]):
+    def __init__(self, view: HelpView) -> None:
+        super().__init__(style=discord.ButtonStyle.danger, label="\N{NO ENTRY}")
+        self.parent = view
+
+    async def callback(self, interaction: discord.Interaction[Yuno]) -> None:
+        for child in self.parent.children:
+            setattr(child, "disabled", True)
+
+        self.parent.stop()
+        return await interaction.response.edit_message(view=self.parent)
+
+class BackButton(Button["HelpView"]):
+    def __init__(self, view: HelpView) -> None:
+        super().__init__(style=discord.ButtonStyle.secondary, label="\N{LEFTWARDS ARROW WITH HOOK}")
+        self.parent = view.parent
+
+    async def callback(self, interaction: discord.Interaction[Yuno]) -> None:
+        return await interaction.response.edit_message(embed=self.parent.embed, view=self.parent)  # type: ignore
+
+
+class HelpTranslator:
+    def __init__(self, ctx: Context[Yuno], user: YUser) -> None:
+        self.bot: Yuno = ctx.bot
+        self._current_user = user
+
+    def get_translation(self, key: str) -> str | dict[str, str]:
+        return self.bot.translator.get_translation(key, self._current_user.locale)
