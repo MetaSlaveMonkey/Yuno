@@ -56,8 +56,8 @@ class YunoErrorProtocol(Protocol):
 
 
 class PaletteColour(NamedTuple):
-    _hex: int
-    _rgb: tuple[int, ...]
+    hex: int
+    rgb: tuple[int, ...]
 
 
 class Palette(TypedDict):

@@ -13,7 +13,7 @@ class Config:
 
     TOKEN = os.getenv("DISCORD_TOKEN")
     POSTGRES_USER = os.getenv("POSTGRES_USER")
-    POSTGRES_PASS = os.getenv("POSTGRES_PASS")
+    POSTGRES_PASS = os.getenv("POSTGRES_PASSWORD")
     POSTGRES_DB = os.getenv("POSTGRES_DB")
     POSTGRES_HOST = os.getenv("POSTGRES_HOST")
     POSTGRES_PORT = os.getenv("POSTGRES_PORT")

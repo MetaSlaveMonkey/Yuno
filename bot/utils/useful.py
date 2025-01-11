@@ -14,11 +14,10 @@ import discord
 from discord.app_commands import Command as AppCommand
 from discord.ext.commands import Command as ExtCommand
 
-from ..classes import YUser
-
 if TYPE_CHECKING:
     from discord.ext.commands import Context
 
+    from ..classes import YUser
     from ..classes import YEmbed
     from ..main import Yuno
 
@@ -124,6 +123,14 @@ class MessagePreview:
 
 
 class FakeRecord:
+    """A fake record class for storing data in a dictionary-like object
+
+    Parameters
+    ----------
+    data : Optional[dict[str, Any]], optional
+        The data to store, by default None
+    """
+
     def __init__(self, data: Optional[dict[str, Any]] = None) -> None:
         self._data: dict[str, Any] = data if data is not None else {}
 
@@ -157,6 +164,16 @@ class FakeRecord:
 
 
 class AsyncUserCache:
+    """A cache for storing user objects
+
+    Attributes
+    ----------
+    _cache : dict[int, YUser]
+        The cache of user objects
+    _lock : asyncio.Lock
+        The lock for the cache
+    """
+
     def __init__(self) -> None:
         self._cache: dict[int, YUser] = {}
         self._lock = asyncio.Lock()
@@ -197,6 +214,20 @@ class AsyncUserCache:
 
 
 def format_dt(dt: datetime.datetime, style: Optional[str] = None) -> str:
+    """Format a datetime object into a discord timestamp string
+
+    Parameters
+    ----------
+    dt : datetime.datetime
+        The datetime object to format
+    style : Optional[str], optional
+        The style of the timestamp, by default None
+
+    Returns
+    -------
+    str
+        The formatted timestamp string
+    """
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=datetime.timezone.utc)
 
@@ -206,20 +237,20 @@ def format_dt(dt: datetime.datetime, style: Optional[str] = None) -> str:
 
 
 class CaseInsensitiveDict(dict):
-    def __contains__(self, k):
+    def __contains__(self, k) -> bool:
         return super().__contains__(k.casefold())
 
-    def __delitem__(self, k):
+    def __delitem__(self, k) -> None:
         return super().__delitem__(k.casefold())
 
-    def __getitem__(self, k):
+    def __getitem__(self, k) -> Any:
         return super().__getitem__(k.casefold())
 
-    def get(self, k, default=None):
+    def get(self, k, default=None) -> Any:
         return super().get(k.casefold(), default)
 
-    def pop(self, k, default=None):
+    def pop(self, k, default=None) -> Any:
         return super().pop(k.casefold(), default)
 
-    def __setitem__(self, k, v):
+    def __setitem__(self, k, v) -> None:
         super().__setitem__(k.casefold(), v)

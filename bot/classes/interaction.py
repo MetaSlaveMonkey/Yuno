@@ -9,14 +9,13 @@ import asyncpg
 import discord
 import orjson
 
-from .embed import YEmbed
 from ..config import Config
+from .embed import YEmbed
 
 if TYPE_CHECKING:
     from discord.ext.commands import Context
 
     from ..main import Yuno
-    
 
 
 conf = Config()
@@ -25,9 +24,6 @@ __all__: tuple[str, ...] = ("UserInteractions",)
 
 
 class UserInteractions:
-    GOOD = orjson.loads((Path(__file__).parent / "data" / "good_int.json").read_text(encoding="utf-8"))
-    BAD = orjson.loads((Path(__file__).parent / "data" / "bad_int.json").read_text(encoding="utf-8"))
-
     async def get_embed(
         self,
         ctx: Context[Yuno],
@@ -41,14 +37,13 @@ class UserInteractions:
         embed = YEmbed.default(
             ctx,
             description=(
-                f"{emoji}" if emoji else "" +
-                description.format(author=author.display_name, target=target.display_name)
+                f"{emoji}" if emoji else "" + description.format(author=author.display_name, target=target.display_name)
             ),
             footer=footer.format(
                 author=author.display_name,
                 target=target.display_name,
                 count=count,
-            )
+            ),
         )
 
         return embed

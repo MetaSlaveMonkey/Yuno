@@ -59,7 +59,7 @@ class Yuno(commands.Bot):
         self.strip_after_prefix = True
         self.uptime: datetime.datetime
         self.pool: asyncpg.pool.Pool = pool
-        self.translator = Translator("classes/data/translation.json")
+        self.translator = Translator()
 
         self.OWNER_IDS: list[int] = self.config.get_owner_ids()
         self._extensions_loaded: asyncio.Event = asyncio.Event()
@@ -73,7 +73,7 @@ class Yuno(commands.Bot):
     async def setup_hook(self) -> None:
         if self.session is None:
             self.session = aiohttp.ClientSession()
-            
+
         for extension in self._extensions:
             await self.load_extension(f"bot.cogs.{extension}")
 
@@ -186,8 +186,7 @@ class Yuno(commands.Bot):
             return await self.user_cache.upsert_user(conn, user_id)
 
     async def find_user(self, user_id: int) -> Optional[YUser]:
-        user = self.user_cache._cache.get(user_id)
-        if user:
+        if user := await self.user_cache.get_user(user_id):
             return user
 
         async with self.pool.acquire() as conn:

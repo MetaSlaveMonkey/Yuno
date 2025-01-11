@@ -55,13 +55,7 @@ class HelpView(View, abc.ABC):
         cls.__init__ = patch_init(cls.__init__)  # type: ignore
         return super().__init_subclass__()
 
-    def __init__(
-        self,
-        ctx: Context[Yuno],
-        user: YUser,
-        parent: Optional[HelpView] = None,
-        timeout: float = 180.0
-    ) -> None:
+    def __init__(self, ctx: Context[Yuno], user: YUser, parent: Optional[HelpView] = None, timeout: float = 180.0) -> None:
         super().__init__(timeout=timeout)
 
         self.ctx = ctx
@@ -92,7 +86,7 @@ class HelpView(View, abc.ABC):
 
         if root_view is view:
             return None
-        
+
         return root_view
 
     async def interaction_check(self, interaction: discord.Interaction[discord.Client]) -> bool:
@@ -114,16 +108,13 @@ class HelpView(View, abc.ABC):
 
 class HomeButton(Button["HelpView"]):
     def __init__(self, view: HelpView) -> None:
-        super().__init__(
-            emoji="\N{HOUSE BUILDING}",
-            label="Home",
-            style=discord.ButtonStyle.primary
-        )
+        super().__init__(emoji="\N{HOUSE BUILDING}", label="Home", style=discord.ButtonStyle.primary)
         self.bot: Yuno = view.bot
         self.parent = view.parent
 
     async def callback(self, interaction: discord.Interaction[Yuno]) -> None:
         return await interaction.response.edit_message(view=self.parent, embed=self.parent.to_embed())  # type: ignore
+
 
 class StopButton(Button["HelpView"]):
     def __init__(self, view: HelpView) -> None:
@@ -136,6 +127,7 @@ class StopButton(Button["HelpView"]):
 
         self.parent.stop()
         return await interaction.response.edit_message(view=self.parent)
+
 
 class BackButton(Button["HelpView"]):
     def __init__(self, view: HelpView) -> None:
@@ -153,3 +145,7 @@ class HelpTranslator:
 
     def get_translation(self, key: str) -> str | dict[str, str]:
         return self.bot.translator.get_translation(key, self._current_user.locale)
+
+
+async def setup(bot: Yuno) -> None:
+    pass

@@ -71,8 +71,8 @@ class Translations(TypedDict):
 
 
 class Translator:
-    def __init__(self, path: str | Path) -> None:
-        self._file_path = path
+    def __init__(self, path: Optional[str | Path] = None) -> None:
+        self._file_path = path or Path(r"bot\classes\data\translation.json")
         self.translations: Optional[Translations] = None
 
     async def load_translations(self) -> None:
