@@ -26,13 +26,14 @@ class YGuild:
     async def upsert_guild(db: asyncpg.Connection, guild_id: int, locale: str = "en_US") -> YGuild:
         await db.execute(
             """
-            INSERT INTO guilds (guild_id, prefix, locale)
-            VALUES ($1, $2)
+            INSERT INTO guilds (guild_id, locale, added_at)
+            VALUES ($1, $2, $3)
             ON CONFLICT (guild_id)
             DO UPDATE SET locale = $2
             """,
             guild_id,
             locale,
+            discord.utils.utcnow(),
         )
         return await YGuild.get_guild(db, guild_id)  # type: ignore
 
@@ -43,12 +44,12 @@ class YGuild:
     ) -> None:
         await db.executemany(
             """
-            INSERT INTO guilds (guild_id, prefix, locale)
-            VALUES ($1, $2)
+            INSERT INTO guilds (guild_id, locale)
+            VALUES ($1, $2, $3)
             ON CONFLICT (guild_id)
             DO NOTHING
             """,
-            [(guild.guild_id, "en_US") for guild in guilds],
+            [(guild.guild_id, "en_US", discord.utils.utcnow()) for guild in guilds],
         )
 
     @staticmethod
@@ -68,12 +69,3 @@ class YGuild:
         record = await db.fetchval("SELECT locale FROM guilds WHERE guild_id = $1", guild_id)
 
         return record or "en_US"
-
-    @staticmethod
-    async def get_prefix(db: asyncpg.Connection, guild_id: int) -> list[str]:
-        records = await db.fetch("SELECT prefix FROM guilds WHERE guild_id = $1", guild_id)
-        return [record["prefix"] for record in records] if records else ["y"]
-
-    @staticmethod
-    async def update_prefix(db: asyncpg.Connection, guild_id: int, prefix: str) -> None:
-        await db.execute("UPDATE guilds SET prefix = $1 WHERE guild_id = $2", prefix, guild_id)

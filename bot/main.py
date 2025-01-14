@@ -63,7 +63,6 @@ class Yuno(commands.Bot):
 
         self.OWNER_IDS: list[int] = self.config.get_owner_ids()
         self._extensions_loaded: asyncio.Event = asyncio.Event()
-        self._run_db_migrations: bool = self.config.RUN_DB_MIGRATIONS
         self._extensions = [p.stem for p in pathlib.Path(".").glob("./bot/cogs/*.py")]
 
         self.user_cache = AsyncUserCache()
@@ -86,7 +85,7 @@ class Yuno(commands.Bot):
         await self.translator.load_translations()
 
     @classmethod
-    async def setup_db(cls, dsn: str, migrations: bool = False) -> asyncpg.pool.Pool:
+    async def setup_db(cls, dsn: str, migrations: bool = True) -> asyncpg.pool.Pool:
         def serializer(obj: Any) -> str:
             return discord.utils._to_json(obj)
 
@@ -222,7 +221,7 @@ def main() -> None:
     async def _startup() -> None:
 
         async with aiohttp.ClientSession() as session:
-            pool = await Yuno.setup_db(dsn, migrations=config.RUN_DB_MIGRATIONS)
+            pool = await Yuno.setup_db(dsn, migrations=True)
             bot = Yuno(token, dsn, session=session, intents=intents, pool=pool)
             bot._BotBase__cogs = CaseInsensitiveDict()  # type: ignore
             await bot.start(token)
