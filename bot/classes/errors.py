@@ -33,26 +33,10 @@ __all__: tuple[str, ...] = (
     "YunoCommandNeutral",
     "YunoCommandErrorType",
     "YunoCommandErrorFactory",
-    "YunoErrorProtocol",
     "YunoColours",
     "Palette",
     "PaletteColour",
 )
-
-
-@runtime_checkable
-class YunoErrorProtocol(Protocol):
-    def __str__(self) -> str: ...
-
-    def __repr__(self) -> str: ...
-
-    def log_case(self, message: str) -> None: ...
-
-    def create_embed(self, ctx: Context[Yuno]) -> YEmbed: ...
-
-    async def handle(self, ctx: Context[Yuno], message: Optional[str] = None) -> None: ...
-
-    def get_colour(self, palette: Optional[Palette] = None) -> tuple[int, tuple[int, ...]]: ...
 
 
 class PaletteColour(NamedTuple):

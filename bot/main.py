@@ -12,7 +12,7 @@ import os
 import pathlib
 import re
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, DefaultDict, Optional, Self
+from typing import TYPE_CHECKING, Any, DefaultDict, Optional
 
 import aiohttp
 import asyncpg
@@ -49,6 +49,7 @@ class Yuno(commands.Bot):
             intents=intents,
             chunk_guilds_at_startup=False,
             max_messages=2000,
+            help_command=discord.ext.commands.DefaultHelpCommand(dm_help=True),
             **kwargs,
         )
         self.dns = dns
